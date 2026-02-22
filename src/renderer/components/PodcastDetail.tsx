@@ -25,7 +25,7 @@ export default function PodcastDetail({ itemId, coverUrl, onClose }: PodcastDeta
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { setCurrentItem, setCurrentEpisode } = usePlayerStore();
+  const { playItem } = usePlayerStore();
 
   useEffect(() => {
     const load = async () => {
@@ -43,16 +43,18 @@ export default function PodcastDetail({ itemId, coverUrl, onClose }: PodcastDeta
 
   const playEpisode = useCallback((ep: PodcastEpisodeData) => {
     const meta = data?.media?.metadata;
-    setCurrentItem({
-      id: itemId,
-      title: ep.title,
-      author: `${meta?.title || ''}${meta?.author ? ` - ${meta.author}` : ''}`,
-      coverUrl: coverUrl || undefined,
-    });
-    setCurrentEpisode({ id: ep.id, title: ep.title });
+    playItem(
+      {
+        id: itemId,
+        title: ep.title,
+        author: `${meta?.title || ''}${meta?.author ? ` - ${meta.author}` : ''}`,
+        coverUrl: coverUrl || undefined,
+      },
+      { id: ep.id, title: ep.title }
+    );
     usePlayerStore.getState().setIsPlaying(true);
     onClose();
-  }, [data, itemId, coverUrl, setCurrentItem, setCurrentEpisode, onClose]);
+  }, [data, itemId, coverUrl, playItem, onClose]);
 
   const formatDuration = (seconds: number) => {
     const m = Math.floor(seconds / 60);

@@ -447,7 +447,7 @@ export default function Player() {
     if (currentItem) {
       loadTrack();
     }
-  }, [currentItem?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [currentItem?.id, currentEpisode?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Cleanup on unmount
   useEffect(() => {

@@ -22,6 +22,7 @@ interface PlayerState {
   currentTrackIndex: number;
   setCurrentItem: (item: PlayerState['currentItem']) => void;
   setCurrentEpisode: (episode: PlayerState['currentEpisode']) => void;
+  playItem: (item: NonNullable<PlayerState['currentItem']>, episode?: PlayerState['currentEpisode']) => void;
   setSessionId: (sessionId: string) => void;
   setIsPlaying: (playing: boolean) => void;
   setCurrentTime: (time: number) => void;
@@ -50,6 +51,18 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   currentTrackIndex: 0,
   setCurrentItem: (item) => set({ currentItem: item, currentEpisode: null, currentTime: 0, duration: 0, sessionId: null, lastSyncTime: 0, chapters: [], audioTracks: [], currentTrackIndex: 0 }),
   setCurrentEpisode: (episode) => set({ currentEpisode: episode }),
+  // Atomic setter for item + episode to avoid double-fire of loadTrack
+  playItem: (item, episode) => set({
+    currentItem: item,
+    currentEpisode: episode || null,
+    currentTime: 0,
+    duration: 0,
+    sessionId: null,
+    lastSyncTime: 0,
+    chapters: [],
+    audioTracks: [],
+    currentTrackIndex: 0,
+  }),
   setSessionId: (sessionId) => set({ sessionId }),
   setIsPlaying: (playing) => set({ isPlaying: playing }),
   setCurrentTime: (time) => set({ currentTime: time }),

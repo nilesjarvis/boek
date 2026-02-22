@@ -37,7 +37,7 @@ export default function Podcasts({ libraryId }: PodcastsProps) {
   const [fetchedFavourites, setFetchedFavourites] = useState<any[]>([]);
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuthStore();
-  const { setCurrentItem, setCurrentEpisode } = usePlayerStore();
+  const { playItem: playStoreItem } = usePlayerStore();
   const { favouriteIds, toggleFavourite, isFavourite } = useFavouritesStore();
   
   // Collect all unique podcast series across all shelves, filter to favourites
@@ -331,17 +331,15 @@ export default function Podcasts({ libraryId }: PodcastsProps) {
       const podcastTitle = item.media?.metadata?.title || item.podcastTitle || '';
       const author = item.media?.metadata?.author || '';
       
-      setCurrentItem({
-        id: libraryItemId,
-        title: episode.title || 'Unknown Episode',
-        author: `${podcastTitle}${author ? ` - ${author}` : ''}`,
-        coverUrl: undefined, // Let it figure out the cover
-      });
-      
-      setCurrentEpisode({
-        id: episodeId,
-        title: episode.title || 'Unknown Episode',
-      });
+      playStoreItem(
+        {
+          id: libraryItemId,
+          title: episode.title || 'Unknown Episode',
+          author: `${podcastTitle}${author ? ` - ${author}` : ''}`,
+          coverUrl: undefined,
+        },
+        { id: episodeId, title: episode.title || 'Unknown Episode' }
+      );
       return;
     }
     
@@ -359,19 +357,15 @@ export default function Podcasts({ libraryId }: PodcastsProps) {
     const podcastTitle = item.media?.metadata?.title || item.podcastTitle || '';
     const author = item.media?.metadata?.author || '';
     
-    // Set the current item for the player
-    setCurrentItem({
-      id: libraryItemId,
-      title: episode.title || 'Unknown Episode',
-      author: `${podcastTitle}${author ? ` - ${author}` : ''}`,
-      coverUrl: coverUrl || undefined, // Use the exact same cover URL from the grid
-    });
-    
-    // Set the episode information
-    setCurrentEpisode({
-      id: episodeId,
-      title: episode.title || 'Unknown Episode',
-    });
+    playStoreItem(
+      {
+        id: libraryItemId,
+        title: episode.title || 'Unknown Episode',
+        author: `${podcastTitle}${author ? ` - ${author}` : ''}`,
+        coverUrl: coverUrl || undefined,
+      },
+      { id: episodeId, title: episode.title || 'Unknown Episode' }
+    );
     
     // Start playing the episode
     usePlayerStore.getState().setIsPlaying(true);

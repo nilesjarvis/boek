@@ -58,7 +58,7 @@ export default function Search() {
   const [libraries, setLibraries] = useState<Library[]>([]);
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const { setCurrentItem, setCurrentEpisode } = usePlayerStore();
+  const { playItem: playStoreItem } = usePlayerStore();
   const { isFavourite, toggleFavourite } = useFavouritesStore();
   const [detailPodcast, setDetailPodcast] = useState<{ itemId: string; coverUrl: string | null } | null>(null);
 
@@ -257,9 +257,7 @@ export default function Search() {
   // --- Action handlers ---
 
   const playBook = useCallback((book: ProcessedBook) => {
-    // Clear any stale episode, set the book, start playing
-    setCurrentEpisode(null);
-    setCurrentItem({
+    playStoreItem({
       id: book.libraryItemId,
       title: book.title,
       author: book.author,
@@ -267,22 +265,21 @@ export default function Search() {
     });
     usePlayerStore.getState().setIsPlaying(true);
     closeSearch();
-  }, [setCurrentItem, setCurrentEpisode]);
+  }, [playStoreItem]);
 
   const playEpisode = useCallback((episode: ProcessedEpisode) => {
-    setCurrentItem({
-      id: episode.libraryItemId,
-      title: episode.title,
-      author: `${episode.podcastTitle}${episode.author ? ` - ${episode.author}` : ''}`,
-      coverUrl: episode.coverUrl,
-    });
-    setCurrentEpisode({
-      id: episode.episodeId,
-      title: episode.title,
-    });
+    playStoreItem(
+      {
+        id: episode.libraryItemId,
+        title: episode.title,
+        author: `${episode.podcastTitle}${episode.author ? ` - ${episode.author}` : ''}`,
+        coverUrl: episode.coverUrl,
+      },
+      { id: episode.episodeId, title: episode.title }
+    );
     usePlayerStore.getState().setIsPlaying(true);
     closeSearch();
-  }, [setCurrentItem, setCurrentEpisode]);
+  }, [playStoreItem]);
 
   const openPodcastDetail = useCallback((podcast: ProcessedPodcast) => {
     setDetailPodcast({

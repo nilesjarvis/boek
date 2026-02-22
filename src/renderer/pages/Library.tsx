@@ -17,7 +17,7 @@ export default function Library() {
   const [itemProgress, setItemProgress] = useState<Record<string, MediaProgress>>({});
   const navigate = useNavigate();
   const { isAuthenticated } = useAuthStore();
-  const { setCurrentItem, setCurrentEpisode } = usePlayerStore();
+  const { playItem: playStoreItem } = usePlayerStore();
   const { favouriteIds, toggleFavourite, isFavourite } = useFavouritesStore();
 
   useEffect(() => {
@@ -126,9 +126,7 @@ export default function Library() {
     const title = item.media?.metadata?.title || item.title;
     const author = item.media?.metadata?.authorName || item.authorName;
     const coverPath = item.media?.coverPath || item.coverPath;
-    // Explicitly clear any stale podcast episode before loading a book
-    setCurrentEpisode(null);
-    setCurrentItem({
+    playStoreItem({
       id: item.id,
       title,
       author,
@@ -137,7 +135,7 @@ export default function Library() {
         : undefined,
     });
     usePlayerStore.getState().setIsPlaying(true);
-  }, [setCurrentItem, setCurrentEpisode]);
+  }, [playStoreItem]);
 
   // Split items into favourites and the rest
   const { favouriteItems, otherItems } = useMemo(() => {
