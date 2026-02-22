@@ -1,0 +1,63 @@
+{
+  "name": "audiobookshelf-player",
+  "version": "1.0.0",
+  "description": "Minimalistic Audiobookshelf client for Linux",
+  "main": "dist/main/index.js",
+  "author": {
+    "name": "Audiobookshelf Player",
+    "email": "dev@audiobookshelf-player.app"
+  },
+  "homepage": "https://github.com/audiobookshelf-player/boek",
+  "license": "MIT",
+  "scripts": {
+    "dev": "concurrently -k \"npm run dev:renderer\" \"npm run dev:main\"",
+    "dev:renderer": "vite --port 5173",
+    "dev:main": "tsc -p tsconfig.main.json && cross-env NODE_ENV=development electron .",
+    "build": "npm run build:renderer && npm run build:main",
+    "build:renderer": "tsc -p tsconfig.renderer.json && vite build",
+    "build:main": "tsc -p tsconfig.main.json",
+    "package": "npm run build && electron-builder --linux",
+    "start": "electron ."
+  },
+  "dependencies": {
+    "axios": "^1.6.2",
+    "electron-store": "^8.1.0",
+    "hls.js": "^1.6.15",
+    "socket.io-client": "^4.8.3",
+    "zustand": "^4.4.7"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.4",
+    "@types/react": "^18.2.43",
+    "@types/react-dom": "^18.2.17",
+    "@types/socket.io-client": "^3.0.0",
+    "@vitejs/plugin-react": "^4.2.1",
+    "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3",
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.21.0",
+    "typescript": "^5.3.3",
+    "vite": "^5.0.8"
+  },
+  "build": {
+    "appId": "com.audiobookshelf.player",
+    "productName": "AudiobookshelfPlayer",
+    "directories": {
+      "output": "release"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Audio"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ]
+  }
+}

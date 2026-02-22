@@ -1,0 +1,223 @@
+.library {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.library-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 2.5rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.75rem;
+}
+
+.lib-tab {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 0.875rem;
+  color: var(--fg-secondary);
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.lib-tab:hover {
+  background: var(--bg-secondary);
+  color: var(--fg);
+}
+
+.lib-tab.active {
+  background: var(--accent);
+  color: white;
+}
+
+.lib-tab.active .shortcut-hint {
+  border-color: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.library-items {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1.5rem;
+}
+
+.library-item {
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.library-item:hover {
+  transform: translateY(-4px);
+}
+
+.item-cover {
+  aspect-ratio: 1;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--bg-secondary);
+  margin-bottom: 1rem;
+  position: relative;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transition: box-shadow 0.2s ease;
+}
+
+.library-item:hover .item-cover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.item-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.item-progress-bar {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.3s ease;
+}
+
+.item-finished-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  background: var(--success);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Favourite heart button */
+.item-favourite-button {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 32px;
+  height: 32px;
+  background: rgba(0, 0, 0, 0.45);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  opacity: 0;
+  transition: opacity 0.15s, background-color 0.15s, transform 0.15s;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.library-item:hover .item-favourite-button {
+  opacity: 1;
+}
+
+.item-favourite-button.active {
+  opacity: 1;
+  color: var(--accent);
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.item-favourite-button:hover {
+  transform: scale(1.15);
+  background: rgba(0, 0, 0, 0.65);
+}
+
+.item-progress-text {
+  font-size: 0.75rem;
+  color: var(--accent);
+  font-weight: 600;
+  margin-top: 0.25rem;
+}
+
+.library-item.finished .item-cover {
+  position: relative;
+}
+
+.library-item.finished .item-cover::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+}
+
+.item-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.item-cover-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fg-muted);
+}
+
+.item-info {
+  padding: 0 0.25rem;
+}
+
+.item-title {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--fg);
+  margin-bottom: 0.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.item-author {
+  font-size: 0.8rem;
+  color: var(--fg-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--fg-muted);
+  font-size: 1.25rem;
+}
+
+.empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
+  color: var(--fg-muted);
+  font-size: 1rem;
+}
+
+.library-section-header {
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--fg-muted);
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+}
+
+.library-section-header:first-of-type {
+  margin-top: 0;
+}

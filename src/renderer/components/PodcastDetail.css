@@ -1,0 +1,230 @@
+.podcast-detail-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+  padding: 2rem;
+}
+
+.podcast-detail-modal {
+  width: 100%;
+  max-width: 640px;
+  max-height: 85vh;
+  background: var(--bg-secondary);
+  border-radius: 16px;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.podcast-detail-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  color: var(--fg-muted);
+  padding: 0.5rem;
+  border-radius: 50%;
+  z-index: 1;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.podcast-detail-close:hover {
+  background: var(--bg-tertiary);
+  color: var(--fg);
+}
+
+.podcast-detail-loading,
+.podcast-detail-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem;
+  color: var(--fg-muted);
+}
+
+.podcast-detail-error {
+  color: var(--error);
+}
+
+/* Header: cover + info side by side */
+.podcast-detail-header {
+  display: flex;
+  gap: 1.5rem;
+  padding: 1.5rem 1.5rem 0;
+}
+
+.podcast-detail-cover {
+  width: 120px;
+  height: 120px;
+  border-radius: 10px;
+  overflow: hidden;
+  flex-shrink: 0;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.podcast-detail-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.podcast-detail-cover-placeholder {
+  width: 100%;
+  height: 100%;
+  background: var(--bg-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fg-muted);
+}
+
+.podcast-detail-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.podcast-detail-info h2 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--fg);
+  margin-bottom: 0.25rem;
+  line-height: 1.3;
+}
+
+.podcast-detail-author {
+  font-size: 0.875rem;
+  color: var(--fg-muted);
+  margin-bottom: 0.5rem;
+}
+
+.podcast-detail-genres {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+}
+
+.genre-tag {
+  font-size: 0.7rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 10px;
+  background: var(--bg-tertiary);
+  color: var(--fg-secondary);
+  border: 1px solid var(--border);
+}
+
+.podcast-detail-episode-count {
+  font-size: 0.8rem;
+  color: var(--fg-muted);
+}
+
+/* Description */
+.podcast-detail-description {
+  padding: 1rem 1.5rem;
+  font-size: 0.85rem;
+  color: var(--fg-secondary);
+  line-height: 1.5;
+  max-height: 80px;
+  overflow-y: auto;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Episodes list */
+.podcast-detail-episodes {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 1.5rem 1.5rem;
+}
+
+.podcast-detail-episodes h3 {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+  padding: 1rem 0 0.5rem;
+  position: sticky;
+  top: 0;
+  background: var(--bg-secondary);
+  z-index: 1;
+}
+
+.podcast-detail-episode-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.podcast-detail-episode {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  border-radius: 8px;
+  text-align: left;
+  color: var(--fg);
+  transition: background-color 0.15s;
+  cursor: pointer;
+  border: none;
+  background: none;
+  width: 100%;
+}
+
+.podcast-detail-episode:hover {
+  background: var(--bg-tertiary);
+}
+
+.podcast-detail-episode:hover .episode-play-icon {
+  color: var(--accent);
+}
+
+.episode-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.episode-title {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-bottom: 0.2rem;
+}
+
+.episode-meta {
+  display: flex;
+  gap: 0.75rem;
+  font-size: 0.75rem;
+  color: var(--fg-muted);
+}
+
+.episode-play-icon {
+  flex-shrink: 0;
+  color: var(--fg-muted);
+  transition: color 0.15s;
+}
+
+/* Scrollbar for the episode list */
+.podcast-detail-episodes::-webkit-scrollbar {
+  width: 6px;
+}
+
+.podcast-detail-episodes::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.podcast-detail-episodes::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+.podcast-detail-episodes::-webkit-scrollbar-thumb:hover {
+  background: var(--fg-muted);
+}

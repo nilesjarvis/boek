@@ -1,0 +1,26 @@
+
+> audiobookshelf-player@1.0.0 dev
+> concurrently -k "npm run dev:renderer" "npm run dev:main"
+
+[1] 
+[1] > audiobookshelf-player@1.0.0 dev:main
+[1] > tsc -p tsconfig.main.json && cross-env NODE_ENV=development electron .
+[1] 
+[0] 
+[0] > audiobookshelf-player@1.0.0 dev:renderer
+[0] > vite --port 5173
+[0] 
+[0] [33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+[0] 
+[0]   VITE v5.4.21  ready in 166 ms
+[0] 
+[0]   ➜  Local:   http://localhost:5173/
+[0]   ➜  Network: use --host to expose
+[0] 9:15:33 PM [vite] hmr update /components/Player.tsx
+[0] 9:16:37 PM [vite] hmr update /pages/Login.tsx, /pages/Library.tsx, /App.tsx, /components/Layout.tsx, /components/Player.tsx
+[0] 9:16:59 PM [vite] hmr update /pages/Login.tsx, /pages/Library.tsx, /App.tsx, /components/Layout.tsx, /components/Player.tsx
+[1] Terminated
+[1] /home/user/Documents/boek/node_modules/electron/dist/electron exited with signal SIGTERM
+[1] npm run dev:main exited with code 143
+--> Sending SIGTERM to other processes..
+[0] npm run dev:renderer exited with code SIGTERM
