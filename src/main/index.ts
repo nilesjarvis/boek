@@ -3,6 +3,9 @@ import * as path from 'path';
 
 app.disableHardwareAcceleration();
 app.commandLine.appendSwitch('disable-gpu');
+app.commandLine.appendSwitch('disable-gpu-compositing');
+app.commandLine.appendSwitch('disable-dev-shm-usage');
+app.commandLine.appendSwitch('in-process-gpu');
 app.commandLine.appendSwitch('disable-web-security');
 
 let mainWindow: BrowserWindow | null = null;
