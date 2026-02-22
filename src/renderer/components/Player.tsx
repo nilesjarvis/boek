@@ -826,7 +826,7 @@ export default function Player() {
             </div>
           )}
         </div>
-        <div className="mini-volume-control" onClick={(e) => e.stopPropagation()}>
+        <div className="mini-volume-control" onClick={(e) => e.stopPropagation()} onWheel={(e) => { e.stopPropagation(); handleSetVolume(volume + (e.deltaY < 0 ? 0.05 : -0.05)); }}>
           <button
             className="mini-volume-button"
             onClick={() => handleSetVolume(volume > 0 ? 0 : 1)}

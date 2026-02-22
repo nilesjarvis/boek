@@ -83,8 +83,75 @@
   color: var(--fg);
 }
 
+.theme-button-wrapper {
+  position: relative;
+}
+
 .theme-button {
   position: relative;
+}
+
+/* Theme picker dropdown (right-click) */
+.theme-picker {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 200;
+  min-width: 200px;
+  max-height: 420px;
+  overflow-y: auto;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.375rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.theme-picker-option {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--fg-secondary);
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 500;
+  transition: background 0.15s;
+  text-align: left;
+  width: 100%;
+}
+
+.theme-picker-option:hover {
+  background: var(--bg-tertiary);
+  color: var(--fg);
+}
+
+.theme-picker-option.active {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.theme-picker-swatch {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+}
+
+.theme-picker-name {
+  flex: 1;
+}
+
+.theme-picker-check {
+  flex-shrink: 0;
+  color: var(--accent);
 }
 
 .logout-button:hover {

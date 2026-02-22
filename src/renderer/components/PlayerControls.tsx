@@ -48,6 +48,11 @@ export const PlayerControls = React.memo(({
     onSetVolume(parseFloat(e.target.value));
   }, [onSetVolume]);
 
+  const handleVolumeWheel = useCallback((e: React.WheelEvent) => {
+    const delta = e.deltaY < 0 ? 0.05 : -0.05;
+    onSetVolume(Math.max(0, Math.min(1, volume + delta)));
+  }, [volume, onSetVolume]);
+
   const toggleMute = useCallback(() => {
     onSetVolume(volume > 0 ? 0 : 1);
   }, [volume, onSetVolume]);
@@ -146,7 +151,7 @@ export const PlayerControls = React.memo(({
       </button>
 
       {/* Volume */}
-      <div className="volume-control">
+      <div className="volume-control" onWheel={handleVolumeWheel}>
         <button className="volume-button" onClick={toggleMute} title={volume === 0 ? 'Unmute' : 'Mute'}>
           {volumeIcon()}
         </button>
