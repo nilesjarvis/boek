@@ -111,6 +111,79 @@ export interface SearchResult {
   genres?: any[];
 }
 
+// Listening stats types
+export interface ListeningStatsItem {
+  id: string;
+  timeListening: number;
+  mediaMetadata: {
+    title: string;
+    author?: string;
+    authors?: { id: string; name: string }[];
+    subtitle?: string;
+    narrators?: string[];
+    series?: { id: string; name: string; sequence?: string }[];
+    genres?: string[];
+    publisher?: string;
+    description?: string;
+    imageUrl?: string;
+    type?: string;
+    feedUrl?: string;
+    language?: string;
+    releaseDate?: string;
+    publishedYear?: string | null;
+    publishedDate?: string | null;
+    explicit?: boolean;
+  };
+}
+
+export interface ListeningSession {
+  id: string;
+  userId: string;
+  libraryId: string;
+  libraryItemId: string;
+  bookId: string | null;
+  episodeId: string | null;
+  mediaType: 'book' | 'podcast';
+  mediaMetadata: ListeningStatsItem['mediaMetadata'];
+  chapters: Chapter[];
+  displayTitle: string;
+  displayAuthor: string;
+  coverPath: string;
+  duration: number;
+  playMethod: number;
+  mediaPlayer: string;
+  deviceInfo: {
+    id: string;
+    userId: string;
+    deviceId: string;
+    ipAddress: string;
+    browserName: string;
+    browserVersion: string;
+    osName: string;
+    osVersion: string;
+    clientVersion: string;
+    clientName: string;
+    deviceName: string;
+  };
+  serverVersion: string;
+  date: string;
+  dayOfWeek: string;
+  timeListening: number;
+  startTime: number;
+  currentTime: number;
+  startedAt: number;
+  updatedAt: number;
+}
+
+export interface ListeningStats {
+  totalTime: number;
+  today: number;
+  items: Record<string, ListeningStatsItem>;
+  days: Record<string, number>;
+  dayOfWeek: Record<string, number>;
+  recentSessions: ListeningSession[];
+}
+
 class ABSApi {
   private client: AxiosInstance | null = null;
 
@@ -215,6 +288,11 @@ class ABSApi {
     });
   }
 
+  async getListeningStats(): Promise<ListeningStats> {
+    const res = await this.getClient().get('/me/listening-stats');
+    return res.data;
+  }
+
   async getStreamUrl(itemId: string, episodeId?: string): Promise<{ 
     streamUrl: string; 
     sessionId: string;
@@ -242,7 +320,7 @@ class ABSApi {
     });
     const sessionId = response.data.id;
     const libraryItem = response.data.libraryItem;
-    const currentTime = response.data.currentTime || response.data.startTime || 0;
+    const currentTime = response.data.currentTime ?? response.data.startTime ?? 0;
     let duration = response.data.duration || 0;
     const chapters = response.data.chapters || [];
     

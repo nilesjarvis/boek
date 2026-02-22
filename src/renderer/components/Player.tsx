@@ -47,6 +47,21 @@ export default function Player() {
   const sessionRef = useRef<{ id: string; lastSync: number } | null>(null);
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const hlsRef = useRef<Hls | null>(null);
+  // Ref to track previous session context for clean sync on item switch (Fix #1/#7)
+  // Includes audioTracks + currentTrackIndex so the sync can compute global time
+  // even after setCurrentItem resets the store (root cause of multi-track regression)
+  const prevSessionRef = useRef<{
+    itemId: string;
+    sessionId: string;
+    episodeId?: string;
+    lastSync: number;
+    audioTracks: AudioTrack[];
+    currentTrackIndex: number;
+  } | null>(null);
+  // Generation counter to invalidate stale event listeners on rapid item switches (Fix #8)
+  const loadGenerationRef = useRef(0);
+  // Ref to track whether we're in a track transition to guard sync (Fix #2)
+  const isTransitioningTrackRef = useRef(false);
   const {
     currentItem,
     currentEpisode,
@@ -92,8 +107,13 @@ export default function Player() {
   );
 
   // ----- Helper: get the current global time from the audio element -----
+  // During track transitions, falls back to the store's currentTime to avoid
+  // computing a stale global time from a not-yet-loaded audio element (Fix #2).
   const getGlobalTimeFromAudio = useCallback((): number => {
     if (!audioRef.current) return 0;
+    if (isTransitioningTrackRef.current) {
+      return usePlayerStore.getState().currentTime;
+    }
     const trackTime = audioRef.current.currentTime;
     if (isMultiTrack(audioTracks as AudioTrack[])) {
       return trackTimeToGlobal(audioTracks as AudioTrack[], currentTrackIndex, trackTime);
@@ -124,6 +144,7 @@ export default function Player() {
           ...(currentEpisode && { episodeId: currentEpisode.id }),
         });
         sessionRef.current.lastSync = now;
+        if (prevSessionRef.current) prevSessionRef.current.lastSync = now;
         setLastSyncTime(now);
       } catch (err) {
         console.error('Failed to sync progress:', err);
@@ -144,6 +165,9 @@ export default function Player() {
     
     const track = tracksToUse[trackIndex];
     if (!track) return;
+
+    // Mark transition start to guard sync (Fix #2)
+    isTransitioningTrackRef.current = true;
     
     const { serverUrl: srv, user: u } = useAuthStore.getState();
     const trackUrl = `${srv}${track.contentUrl}?token=${u?.token}`;
@@ -154,8 +178,11 @@ export default function Player() {
       hlsRef.current = null;
     }
     
-    // Update current track index
+    // Update current track index in store and prevSessionRef
     setCurrentTrackIndex(trackIndex);
+    if (prevSessionRef.current) {
+      prevSessionRef.current.currentTrackIndex = trackIndex;
+    }
     
     // Pause before changing source to avoid interruption errors
     audioRef.current.pause();
@@ -189,6 +216,8 @@ export default function Player() {
             audioRef.current.play().catch(console.error);
           }
         }
+        // Mark transition complete (Fix #2)
+        isTransitioningTrackRef.current = false;
         resolve();
       };
       audioRef.current?.addEventListener('canplay', handleCanPlay);
@@ -245,19 +274,28 @@ export default function Player() {
   const loadTrack = useCallback(async () => {
     if (!currentItem || !user || !serverUrl) return;
     
-    // Sync and close previous session if exists
-    if (sessionRef.current && audioRef.current) {
-      const syncTime = getGlobalTimeFromAudio();
-      const timeListened = (Date.now() - sessionRef.current.lastSync) / 1000;
-      await absApi.updateProgress(currentItem.id, sessionRef.current.id, {
+    // Sync and close previous session using the PREVIOUS context (Fix #1)
+    // prevSessionRef holds the correct itemId/episodeId/audioTracks from before
+    // setCurrentItem reset the store -- this is critical for multi-track books
+    if (prevSessionRef.current && audioRef.current) {
+      const prev = prevSessionRef.current;
+      let syncTime = audioRef.current.currentTime;
+      if (isMultiTrack(prev.audioTracks)) {
+        syncTime = trackTimeToGlobal(prev.audioTracks, prev.currentTrackIndex, audioRef.current.currentTime);
+      }
+      const timeListened = (Date.now() - prev.lastSync) / 1000;
+      await absApi.updateProgress(prev.itemId, prev.sessionId, {
         currentTime: syncTime,
         timeListened,
-        ...(currentEpisode && { episodeId: currentEpisode.id }),
+        ...(prev.episodeId && { episodeId: prev.episodeId }),
       }).catch(console.error);
+      prevSessionRef.current = null;
     }
     
     setError(null);
     setIsLoading(true);
+    // Increment generation to invalidate any stale event listeners (Fix #8)
+    const generation = ++loadGenerationRef.current;
     try {
       const { streamUrl, sessionId: newSessionId, currentTime: initialTime, duration: totalDuration, chapters: chs, audioTracks: tracks } = await absApi.getStreamUrl(
         currentItem.id,
@@ -267,6 +305,16 @@ export default function Player() {
       const now = Date.now();
       setLastSyncTime(now);
       sessionRef.current = { id: newSessionId, lastSync: now };
+      // Track session context so we can sync correctly on item switch (Fix #1/#7)
+      // Store audioTracks so the sync can compute global time even after store reset
+      prevSessionRef.current = {
+        itemId: currentItem.id,
+        sessionId: newSessionId,
+        episodeId: currentEpisode?.id,
+        lastSync: now,
+        audioTracks: (tracks || []) as AudioTrack[],
+        currentTrackIndex: 0,
+      };
       setDuration(totalDuration || 0);
       setChapters(chs || []);
       setAudioTracks(tracks || []);
@@ -274,7 +322,7 @@ export default function Player() {
       if (audioRef.current) {
         // Check if we have multiple audio tracks (multi-file book)
          if (tracks && tracks.length > 1 && !currentEpisode) {
-          const seekTime = initialTime || 0;
+          const seekTime = initialTime ?? 0;
           const { trackIndex, trackTime } = findTrackForGlobalTime(tracks as AudioTrack[], seekTime);
           await loadAudioTrackInternal(trackIndex, trackTime, tracks as AudioTrack[]);
           setCurrentTime(seekTime);
@@ -345,6 +393,8 @@ export default function Player() {
           audioRef.current.playbackRate = playbackRate;
           
           const handleLoadError = (e: Event) => {
+            // Ignore if a newer load has started (Fix #8)
+            if (loadGenerationRef.current !== generation) return;
             console.error('Failed to load audio stream:', e);
             setError('Failed to load audio file');
             setIsLoading(false);
@@ -352,9 +402,11 @@ export default function Player() {
           
           audioRef.current.addEventListener('error', handleLoadError, { once: true });
           
-          // Set initial time if resuming playback
-          if (initialTime && initialTime > 0) {
+          // Set initial time if resuming playback (Fix #5: use nullish check, not truthiness)
+          if (initialTime != null && initialTime > 0) {
             const handleLoadedMetadata = () => {
+              // Ignore if a newer load has started (Fix #8)
+              if (loadGenerationRef.current !== generation) return;
               if (audioRef.current) {
                 audioRef.current.currentTime = initialTime;
                 setCurrentTime(initialTime);
@@ -362,11 +414,16 @@ export default function Player() {
             };
             
             audioRef.current.addEventListener('loadedmetadata', handleLoadedMetadata, { once: true });
+          } else {
+            // Starting from the beginning -- ensure store is consistent
+            setCurrentTime(0);
           }
           
           setIsLoading(false);
           
           const handleCanPlayThrough = () => {
+            // Ignore if a newer load has started (Fix #8)
+            if (loadGenerationRef.current !== generation) return;
             if (isPlaying && audioRef.current) {
               audioRef.current.play().catch((err) => {
                 console.error('Failed to start playback:', err);
@@ -404,19 +461,22 @@ export default function Player() {
         hlsRef.current = null;
       }
       
-      // Final sync before unmount -- use global time
+      // Final sync before unmount -- use prevSessionRef for correct context (Fix #7)
+      // Use prevSessionRef track data so multi-track conversion is correct
+      // even if the store has already been reset by setCurrentItem
       if (sessionRef.current && audioRef.current && audioRef.current.currentTime > 0) {
-        const tracks = usePlayerStore.getState().audioTracks as AudioTrack[];
-        const idx = usePlayerStore.getState().currentTrackIndex;
+        const prev = prevSessionRef.current;
+        const tracks = prev?.audioTracks || usePlayerStore.getState().audioTracks as AudioTrack[];
+        const idx = prev?.currentTrackIndex ?? usePlayerStore.getState().currentTrackIndex;
         let syncTime = audioRef.current.currentTime;
         if (isMultiTrack(tracks)) {
           syncTime = trackTimeToGlobal(tracks, idx, audioRef.current.currentTime);
         }
         const timeListened = (Date.now() - sessionRef.current.lastSync) / 1000;
-        absApi.updateProgress(currentItem?.id || '', sessionRef.current.id, {
+        absApi.updateProgress(prev?.itemId || currentItem?.id || '', sessionRef.current.id, {
           currentTime: syncTime,
           timeListened,
-          ...(currentEpisode && { episodeId: currentEpisode.id }),
+          ...(prev?.episodeId && { episodeId: prev.episodeId }),
         }).catch(console.error);
       }
     };
@@ -457,6 +517,7 @@ export default function Player() {
             ...(currentEpisode && { episodeId: currentEpisode.id }),
           }).catch(console.error);
           sessionRef.current.lastSync = now;
+          if (prevSessionRef.current) prevSessionRef.current.lastSync = now;
           setLastSyncTime(now);
         }
       }
@@ -502,6 +563,19 @@ export default function Player() {
   const handleEnded = useCallback(async () => {
     const { audioTracks: tracks, currentTrackIndex: idx } = usePlayerStore.getState();
     if (tracks && tracks.length > 1 && idx < tracks.length - 1) {
+      // Sync progress at end of current track before switching (Fix #3)
+      if (sessionRef.current && prevSessionRef.current) {
+        const endOfTrack = (tracks[idx] as AudioTrack).startOffset + (tracks[idx] as AudioTrack).duration;
+        const now = Date.now();
+        const timeListened = (now - sessionRef.current.lastSync) / 1000;
+        absApi.updateProgress(prevSessionRef.current.itemId, sessionRef.current.id, {
+          currentTime: endOfTrack,
+          timeListened,
+          ...(prevSessionRef.current.episodeId && { episodeId: prevSessionRef.current.episodeId }),
+        }).catch(console.error);
+        sessionRef.current.lastSync = now;
+        if (prevSessionRef.current) prevSessionRef.current.lastSync = now;
+      }
       await loadAudioTrackInternal(idx + 1, 0, tracks as AudioTrack[]);
     } else {
       setIsPlaying(false);
@@ -689,7 +763,11 @@ export default function Player() {
 
   return (
     <>
-      <div className="mini-player" onClick={() => setShowFullPlayer(true)}>
+      <div
+        className={`mini-player ${isPlaying ? 'is-playing' : ''}`}
+        style={{ '--gradient-pos': `${duration > 0 ? (currentTime / duration) * 100 : 0}%` } as React.CSSProperties}
+        onClick={() => setShowFullPlayer(true)}
+      >
         <div className="mini-player-cover">
           {currentItem.coverUrl ? (
             <img src={currentItem.coverUrl} alt={currentItem.title} />

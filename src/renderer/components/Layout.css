@@ -29,6 +29,35 @@
   margin: 0;
 }
 
+.header-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.nav-link {
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--fg-secondary);
+  transition: all 0.2s;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.nav-link:hover {
+  background: var(--bg-tertiary);
+  color: var(--fg);
+}
+
+.nav-link.active {
+  background: var(--bg-tertiary);
+  color: var(--accent);
+  font-weight: 600;
+}
+
 .header-right {
   display: flex;
   align-items: center;

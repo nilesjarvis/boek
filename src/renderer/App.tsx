@@ -8,6 +8,7 @@ import Layout from './components/Layout';
 import Player from './components/Player';
 import Login from './pages/Login';
 import Library from './pages/Library';
+import Stats from './pages/Stats';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuthStore();
@@ -60,6 +61,17 @@ export default function App() {
               <PrivateRoute>
                 <Layout>
                   <Library />
+                </Layout>
+                <Player />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/stats"
+            element={
+              <PrivateRoute>
+                <Layout>
+                  <Stats />
                 </Layout>
                 <Player />
               </PrivateRoute>

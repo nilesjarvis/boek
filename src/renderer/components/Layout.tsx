@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import { useTheme } from '../themes/ThemeProvider';
 import Search from './Search';
@@ -11,6 +11,7 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { logout } = useAuthStore();
   const { themeName, setTheme } = useTheme();
 
@@ -71,7 +72,21 @@ export default function Layout({ children }: LayoutProps) {
     <div className="layout">
       <header className="header">
         <div className="header-left">
-          <h1 className="app-title">Boek</h1>
+          <h1 className="app-title" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>Boek</h1>
+          <nav className="header-nav">
+            <button
+              className={`nav-link ${location.pathname === '/' ? 'active' : ''}`}
+              onClick={() => navigate('/')}
+            >
+              Library
+            </button>
+            <button
+              className={`nav-link ${location.pathname === '/stats' ? 'active' : ''}`}
+              onClick={() => navigate('/stats')}
+            >
+              Stats
+            </button>
+          </nav>
         </div>
         
         <div className="header-right">

@@ -13,6 +13,27 @@
   gap: 1.5rem;
   cursor: pointer;
   z-index: 100;
+  --gradient-pos: 0%;
+}
+
+/* Ambient gradient glow that tracks playback position */
+.mini-player::before {
+  content: '';
+  position: absolute;
+  inset: -1px 0 0 0;
+  border-radius: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+  background: radial-gradient(
+    ellipse 35% 140% at var(--gradient-pos) 0%,
+    color-mix(in srgb, var(--accent) 18%, transparent) 0%,
+    transparent 70%
+  );
+}
+
+.mini-player.is-playing::before {
+  opacity: 1;
 }
 
 .mini-player-cover {
