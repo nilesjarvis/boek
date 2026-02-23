@@ -261,7 +261,7 @@
   padding: 2rem;
   /* Top padding accounts for floating nav height + breathing room */
   padding-top: 4rem;
-  padding-bottom: 100px; /* Space for mini player */
+  padding-bottom: 170px; /* Space for mini player + episode recommendations bar */
   max-width: 1400px;
   width: 100%;
   margin: 0 auto;

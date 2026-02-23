@@ -8,6 +8,7 @@ import { ChapterList } from './ChapterList';
 import { ProgressBar } from './ProgressBar';
 import { ChapterUtils } from '../utils/chapterUtils';
 import { AudioTrack } from '../utils/playerTypes';
+import EpisodeRecommendations from './EpisodeRecommendations';
 import './Player.css';
 
 // Helper: given a global time and an array of tracks, find the track index and track-relative time.
@@ -763,6 +764,7 @@ export default function Player() {
 
   return (
     <>
+      <EpisodeRecommendations />
       <div
         className={`mini-player ${isPlaying ? 'is-playing' : ''}`}
         style={{ '--gradient-pos': `${duration > 0 ? (currentTime / duration) * 100 : 0}%` } as React.CSSProperties}
