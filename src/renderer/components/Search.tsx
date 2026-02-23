@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuthStore } from '@/stores/authStore';
 import { usePlayerStore } from '@/stores/playerStore';
 import { useFavouritesStore } from '@/stores/favouritesStore';
@@ -314,7 +315,7 @@ export default function Search() {
         <kbd className="shortcut-hint">S</kbd>
       </button>
 
-      {isOpen && (
+      {isOpen && createPortal(
         <div className="search-overlay">
           <div className="search-container" ref={searchRef}>
             <div className="search-header">
@@ -527,15 +528,17 @@ export default function Search() {
               </div>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {detailPodcast && (
+      {detailPodcast && createPortal(
         <PodcastDetail
           itemId={detailPodcast.itemId}
           coverUrl={detailPodcast.coverUrl}
           onClose={() => setDetailPodcast(null)}
-        />
+        />,
+        document.body
       )}
     </>
   );

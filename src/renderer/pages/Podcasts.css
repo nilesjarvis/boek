@@ -300,8 +300,8 @@
   }
 }
 
-/* Podcast grid items fade in with a stagger */
-.podcast-item {
+/* Podcast grid items fade in with a stagger (scoped to .podcasts to avoid bleeding into Search) */
+.podcasts .podcast-item {
   animation: podcastItemEnter 0.3s ease both;
 }
 
@@ -317,18 +317,18 @@
 }
 
 /* Stagger the first 12 items for a cascade effect */
-.podcast-item:nth-child(1)  { animation-delay: 0s; }
-.podcast-item:nth-child(2)  { animation-delay: 0.03s; }
-.podcast-item:nth-child(3)  { animation-delay: 0.06s; }
-.podcast-item:nth-child(4)  { animation-delay: 0.09s; }
-.podcast-item:nth-child(5)  { animation-delay: 0.12s; }
-.podcast-item:nth-child(6)  { animation-delay: 0.15s; }
-.podcast-item:nth-child(7)  { animation-delay: 0.18s; }
-.podcast-item:nth-child(8)  { animation-delay: 0.21s; }
-.podcast-item:nth-child(9)  { animation-delay: 0.24s; }
-.podcast-item:nth-child(10) { animation-delay: 0.27s; }
-.podcast-item:nth-child(11) { animation-delay: 0.30s; }
-.podcast-item:nth-child(12) { animation-delay: 0.33s; }
+.podcasts .podcast-item:nth-child(1)  { animation-delay: 0s; }
+.podcasts .podcast-item:nth-child(2)  { animation-delay: 0.03s; }
+.podcasts .podcast-item:nth-child(3)  { animation-delay: 0.06s; }
+.podcasts .podcast-item:nth-child(4)  { animation-delay: 0.09s; }
+.podcasts .podcast-item:nth-child(5)  { animation-delay: 0.12s; }
+.podcasts .podcast-item:nth-child(6)  { animation-delay: 0.15s; }
+.podcasts .podcast-item:nth-child(7)  { animation-delay: 0.18s; }
+.podcasts .podcast-item:nth-child(8)  { animation-delay: 0.21s; }
+.podcasts .podcast-item:nth-child(9)  { animation-delay: 0.24s; }
+.podcasts .podcast-item:nth-child(10) { animation-delay: 0.27s; }
+.podcasts .podcast-item:nth-child(11) { animation-delay: 0.30s; }
+.podcasts .podcast-item:nth-child(12) { animation-delay: 0.33s; }
 
 /* Shelf content fades on tab switch */
 .podcast-shelf {
