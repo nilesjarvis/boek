@@ -20,6 +20,9 @@ export interface MediaProgress {
   progress: number;
   currentTime: number;
   isFinished: boolean;
+  lastUpdate?: number;
+  startedAt?: number;
+  finishedAt?: number | null;
 }
 
 export interface UserSettings {
@@ -274,6 +277,18 @@ class ABSApi {
     } catch (err) {
       return null;
     }
+  }
+
+  /**
+   * Fetch the current user object which includes the full mediaProgress array.
+   * This gives us all episode progress in a single request, avoiding the
+   * limitation of GET /me/progress/{itemId} which only returns one episode per podcast.
+   */
+  async getUserMe(): Promise<{ mediaProgress: MediaProgress[] }> {
+    const res = await this.getClient().get('/me');
+    return {
+      mediaProgress: res.data.mediaProgress || [],
+    };
   }
 
   async updateProgress(_itemId: string, sessionId: string, data: {

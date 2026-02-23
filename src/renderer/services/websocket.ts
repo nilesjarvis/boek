@@ -269,32 +269,10 @@ class WebSocketService {
         console.error('WebSocket: Error in session listener:', err);
       }
     });
-    
-    // Also create a progress update from session data
-    if (session.episodeId && session.duration > 0) {
-      const progress = session.currentTime / session.duration;
-      const progressUpdate: ProgressUpdate = {
-        id: `${session.libraryItemId}-${session.episodeId}`,
-        userId: session.userId,
-        libraryItemId: session.libraryItemId,
-        episodeId: session.episodeId,
-        progress: progress,
-        currentTime: session.currentTime,
-        duration: session.duration,
-        isFinished: progress >= 0.95, // Consider 95% as finished
-        startedAt: session.startedAt,
-        updatedAt: session.updatedAt,
-      };
-      
-      // Notify progress listeners too
-      this.progressListeners.forEach(listener => {
-        try {
-          listener(progressUpdate);
-        } catch (err) {
-          console.error('WebSocket: Error in progress listener:', err);
-        }
-      });
-    }
+    // Note: We intentionally do NOT synthesize a ProgressUpdate from session data here.
+    // Session updates and progress updates are separate concerns. Consumers that care
+    // about live playback position should subscribe to onSessionUpdate directly.
+    // This avoids duplicate state writes that previously caused UI flicker.
   }
 
   disconnect() {

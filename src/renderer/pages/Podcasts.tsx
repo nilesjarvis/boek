@@ -1,9 +1,11 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { absApi } from '../services/api';
 import { useAuthStore } from '../stores/authStore';
 import { usePlayerStore } from '../stores/playerStore';
 import { useFavouritesStore } from '../stores/favouritesStore';
+import { useEpisodeProgressStore } from '../stores/episodeProgressStore';
+import type { EpisodeProgressEntry } from '../stores/episodeProgressStore';
 import { websocketService } from '../services/websocket';
 import PodcastDetail from '../components/PodcastDetail';
 import './Podcasts.css';
@@ -16,14 +18,6 @@ interface PodcastShelf {
   entities: any[];
 }
 
-interface EpisodeProgress {
-  id: string;
-  progress: number;
-  isFinished: boolean;
-  currentTime: number;
-  duration: number;
-}
-
 interface PodcastsProps {
   libraryId?: string;
 }
@@ -32,13 +26,14 @@ export default function Podcasts({ libraryId }: PodcastsProps) {
   const [shelves, setShelves] = useState<PodcastShelf[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedShelf, setSelectedShelf] = useState<string>('continue-listening');
-  const [episodeProgress, setEpisodeProgress] = useState<Record<string, EpisodeProgress>>({});
   const [detailPodcast, setDetailPodcast] = useState<{ itemId: string; coverUrl: string | null } | null>(null);
   const [fetchedFavourites, setFetchedFavourites] = useState<any[]>([]);
   const navigate = useNavigate();
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated } = useAuthStore();
   const { playItem: playStoreItem } = usePlayerStore();
   const { favouriteIds, toggleFavourite, isFavourite } = useFavouritesStore();
+  const episodeProgress = useEpisodeProgressStore((s) => s.progress);
+  const mergeProgress = useEpisodeProgressStore((s) => s.mergeProgress);
   
   // Collect all unique podcast series across all shelves, filter to favourites
   const favouritePodcasts = useMemo(() => {
@@ -122,164 +117,39 @@ export default function Podcasts({ libraryId }: PodcastsProps) {
   
   const podcastLibraryId = libraryId;
 
-  // Refresh shelves when playback stops (so continue-listening updates)
-  useEffect(() => {
-    let wasPlaying = false;
-    const unsub = usePlayerStore.subscribe((state) => {
-      if (wasPlaying && !state.isPlaying && podcastLibraryId) {
-        // Playback just stopped -- refresh after a short delay to let the server sync
-        setTimeout(() => loadPodcasts(), 1500);
-      }
-      wasPlaying = state.isPlaying;
-    });
-    return unsub;
-  }, [podcastLibraryId]); // eslint-disable-line react-hooks/exhaustive-deps
+  /**
+   * Fetch ALL episode progress via GET /api/me (single request) and merge into the store.
+   * This avoids the limitation of GET /me/progress/{itemId} which only returns one episode
+   * per podcast. The merge logic preserves existing entries and only updates with newer data,
+   * preventing the "progress appears then vanishes" flicker cycle.
+   */
+  const fetchEpisodeProgress = useCallback(async () => {
+    try {
+      const { mediaProgress } = await absApi.getUserMe();
+      const progressMap: Record<string, EpisodeProgressEntry> = {};
 
-  useEffect(() => {
-    if (!isAuthenticated) {
-      navigate('/login');
-      return;
-    }
-    if (podcastLibraryId) {
-      loadPodcasts();
-    }
-  }, [isAuthenticated, navigate, podcastLibraryId]);
-
-  // Refresh progress when page gains focus
-  useEffect(() => {
-    const handleFocus = () => {
-      if (shelves.length > 0) {
-        fetchEpisodeProgress(shelves);
-      }
-    };
-
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
-  }, [shelves]);
-
-  // Listen for real-time progress updates via WebSocket
-  useEffect(() => {
-    const unsubscribeProgress = websocketService.onProgressUpdate((progress) => {
-      // Update the progress state for the specific episode
-      if (progress.episodeId) {
-        const episodeId = progress.episodeId;
-        setEpisodeProgress(prev => ({
-          ...prev,
-          [episodeId]: {
-            id: episodeId,
-            progress: progress.progress,
-            isFinished: progress.isFinished,
-            currentTime: progress.currentTime,
-            duration: progress.duration,
-          }
-        }));
-      }
-    });
-
-    const unsubscribeSession = websocketService.onSessionUpdate((session) => {
-      // Update progress based on session data
-      if (session.episodeId && session.duration > 0) {
-        const episodeId = session.episodeId;
-        const progress = session.currentTime / session.duration;
-        setEpisodeProgress(prev => ({
-          ...prev,
-          [episodeId]: {
-            id: episodeId,
-            progress: progress,
-            isFinished: progress >= 0.95, // Consider 95% as finished
-            currentTime: session.currentTime,
-            duration: session.duration,
-          }
-        }));
-      }
-    });
-
-    return () => {
-      unsubscribeProgress();
-      unsubscribeSession();
-    };
-  }, []);
-
-  const fetchEpisodeProgress = async (shelvesData: PodcastShelf[]) => {
-    const progressMap: Record<string, EpisodeProgress> = {};
-    
-    // Collect all episodes with their library item IDs
-    const episodesToFetch: Array<{ libraryItemId: string; episodeId: string }> = [];
-    
-    shelvesData.forEach(shelf => {
-      if (shelf.entities) {
-        shelf.entities.forEach(entity => {
-          // For episode shelves, the entity might have recentEpisode
-          const episode = entity.recentEpisode || entity;
-          const libraryItemId = entity.id || entity.libraryItemId;
-          
-          if (episode.id && libraryItemId) {
-            episodesToFetch.push({
-              libraryItemId,
-              episodeId: episode.id,
-            });
-          }
-          
-          // Also check if entity has episodes array (for podcast series)
-          if (entity.media?.episodes) {
-            entity.media.episodes.forEach((ep: any) => {
-              if (ep.id) {
-                episodesToFetch.push({
-                  libraryItemId: entity.id,
-                  episodeId: ep.id,
-                });
-              }
-            });
-          }
-        });
-      }
-    });
-    
-    // Fetch progress for each library item
-    const libraryItemIds = [...new Set(episodesToFetch.map(e => e.libraryItemId))];
-    
-    await Promise.all(
-      libraryItemIds.map(async (libraryItemId) => {
-        try {
-          const progress = await absApi.getPlaybackProgress(libraryItemId);
-          if (progress) {
-            // Store progress by episode ID if available
-            const episodeId = progress.episodeId;
-            if (episodeId) {
-              progressMap[episodeId] = {
-                id: episodeId,
-                progress: progress.progress || 0,
-                isFinished: progress.isFinished || false,
-                currentTime: progress.currentTime || 0,
-                duration: progress.duration || 0,
-              };
-            }
-          }
-        } catch (err) {
-          console.error(`Failed to fetch progress for ${libraryItemId}:`, err);
-        }
-      })
-    );
-    
-    // Also check user's mediaProgress if available
-    if (user?.mediaProgress) {
-      user.mediaProgress.forEach((progress: any) => {
-        if (progress.episodeId) {
-          progressMap[progress.episodeId] = {
-            id: progress.episodeId,
-            progress: progress.progress || 0,
-            isFinished: progress.isFinished || false,
-            currentTime: progress.currentTime || 0,
-            duration: progress.duration || 0,
+      for (const mp of mediaProgress) {
+        if (mp.episodeId) {
+          progressMap[mp.episodeId] = {
+            id: mp.episodeId,
+            progress: mp.progress || 0,
+            isFinished: mp.isFinished || false,
+            currentTime: mp.currentTime || 0,
+            duration: mp.duration || 0,
+            updatedAt: mp.lastUpdate || Date.now(),
           };
         }
-      });
-    }
-    
-    setEpisodeProgress(progressMap);
-  };
+      }
 
-  const loadPodcasts = async () => {
+      // Merge into persistent store -- existing entries not in the response are preserved,
+      // and entries are only overwritten if the incoming data is newer.
+      mergeProgress(progressMap);
+    } catch (err) {
+      console.error('[Podcasts] Failed to fetch episode progress:', err);
+    }
+  }, [mergeProgress]);
+
+  const loadPodcasts = useCallback(async () => {
     if (!podcastLibraryId) return;
     try {
       const response = await absApi.getPersonalizedLibrary(podcastLibraryId);
@@ -300,8 +170,8 @@ export default function Podcasts({ libraryId }: PodcastsProps) {
       if (shelvesData.length > 0) {
         setShelves(shelvesData);
 
-        // Fetch progress for all episodes
-        await fetchEpisodeProgress(shelvesData);
+        // Fetch progress for all episodes (single bulk request, merged into store)
+        await fetchEpisodeProgress();
       } else {
         console.error('No shelves found in response');
       }
@@ -310,7 +180,79 @@ export default function Podcasts({ libraryId }: PodcastsProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [podcastLibraryId, fetchEpisodeProgress]);
+
+  // Refresh shelves when playback stops (so continue-listening updates)
+  useEffect(() => {
+    let wasPlaying = false;
+    const unsub = usePlayerStore.subscribe((state) => {
+      if (wasPlaying && !state.isPlaying && podcastLibraryId) {
+        // Playback just stopped -- refresh after a short delay to let the server sync
+        setTimeout(() => loadPodcasts(), 1500);
+      }
+      wasPlaying = state.isPlaying;
+    });
+    return unsub;
+  }, [podcastLibraryId, loadPodcasts]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+    if (podcastLibraryId) {
+      loadPodcasts();
+    }
+  }, [isAuthenticated, navigate, podcastLibraryId, loadPodcasts]);
+
+  // Refresh progress when page gains focus
+  useEffect(() => {
+    const handleFocus = () => {
+      fetchEpisodeProgress();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [fetchEpisodeProgress]);
+
+  // Listen for real-time progress updates via WebSocket and write to the persistent store.
+  useEffect(() => {
+    const updateProgress = useEpisodeProgressStore.getState().updateProgress;
+
+    const unsubscribeProgress = websocketService.onProgressUpdate((progress) => {
+      if (progress.episodeId) {
+        updateProgress(progress.episodeId, {
+          id: progress.episodeId,
+          progress: progress.progress,
+          isFinished: progress.isFinished,
+          currentTime: progress.currentTime,
+          duration: progress.duration,
+          updatedAt: progress.updatedAt || Date.now(),
+        });
+      }
+    });
+
+    const unsubscribeSession = websocketService.onSessionUpdate((session) => {
+      // Session updates represent live playback and are always "current",
+      // so use Date.now() as the timestamp to ensure they are accepted.
+      if (session.episodeId && session.duration > 0) {
+        const prog = session.currentTime / session.duration;
+        updateProgress(session.episodeId, {
+          id: session.episodeId,
+          progress: prog,
+          isFinished: prog >= 0.95,
+          currentTime: session.currentTime,
+          duration: session.duration,
+          updatedAt: Date.now(),
+        });
+      }
+    });
+
+    return () => {
+      unsubscribeProgress();
+      unsubscribeSession();
+    };
+  }, []);
 
   const playEpisode = (data: any) => {
     if (!data) return;
@@ -631,25 +573,24 @@ export default function Podcasts({ libraryId }: PodcastsProps) {
                     {!isPodcast && episodeItem && (() => {
                       const episodeId = episodeItem.id;
                       const progress = episodeProgress[episodeId];
+                      const hasProgress = progress && progress.progress > 0;
                       
-                      if (!progress) {
-                        return null;
-                      }
-                      
+                      // Always render the container to reserve layout space and prevent shifts.
+                      // The progress text is hidden via CSS until data is available.
                       return (
-                        <>
+                        <div className="episode-progress-container">
                           <div className="episode-progress">
                             <div 
                               className="episode-progress-bar" 
-                              style={{ width: `${progress.progress * 100}%` }} 
+                              style={{ width: hasProgress ? `${progress.progress * 100}%` : '0%' }} 
                             />
                           </div>
-                          <p className="episode-progress-text">
-                            {progress.isFinished 
+                          <p className={`episode-progress-text ${hasProgress ? 'visible' : ''}`}>
+                            {progress?.isFinished 
                               ? 'Finished' 
-                              : `${Math.round(progress.progress * 100)}%`}
+                              : hasProgress ? `${Math.round(progress.progress * 100)}%` : ''}
                           </p>
-                        </>
+                        </div>
                       );
                     })()}
                   </div>
