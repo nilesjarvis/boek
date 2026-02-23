@@ -3,42 +3,6 @@
   margin: 0 auto;
 }
 
-.library-tabs {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 2.5rem;
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 0.75rem;
-}
-
-.lib-tab {
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  font-weight: 500;
-  font-size: 0.875rem;
-  color: var(--fg-secondary);
-  transition: all 0.2s;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.lib-tab:hover {
-  background: var(--bg-secondary);
-  color: var(--fg);
-}
-
-.lib-tab.active {
-  background: var(--accent);
-  color: white;
-}
-
-.lib-tab.active .shortcut-hint {
-  border-color: rgba(255, 255, 255, 0.25);
-  background: rgba(255, 255, 255, 0.15);
-  color: rgba(255, 255, 255, 0.7);
-}
-
 .library-items {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));

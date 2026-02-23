@@ -1,16 +1,16 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { Library, LibraryItem as LibraryItemType, MediaProgress } from '../services/api';
+import type { LibraryItem as LibraryItemType, MediaProgress } from '../services/api';
 import { absApi } from '../services/api';
 import { useAuthStore } from '../stores/authStore';
 import { usePlayerStore } from '../stores/playerStore';
 import { useFavouritesStore } from '../stores/favouritesStore';
+import { useLibraryNavStore } from '../stores/libraryNavStore';
 import Podcasts from './Podcasts';
 import './Library.css';
 
 export default function Library() {
-  const [libraries, setLibraries] = useState<Library[]>([]);
-  const [selectedLib, setSelectedLib] = useState<Library | null>(null);
+  const { libraries, selectedLib, setLibraries, setSelectedLib } = useLibraryNavStore();
   const [items, setItems] = useState<LibraryItemType[]>([]);
   const [loading, setLoading] = useState(true);
   const [itemsLoading, setItemsLoading] = useState(false);
@@ -230,22 +230,6 @@ export default function Library() {
     );
   }, [itemProgress, isFavourite, toggleFavourite, playItem]);
 
-  // --- Library tabs (shared across all return paths) ---
-  const libraryTabs = (
-    <div className="library-tabs">
-      {libraries.map((lib) => (
-        <button
-          key={lib.id}
-          className={`lib-tab ${selectedLib?.id === lib.id ? 'active' : ''}`}
-          onClick={() => setSelectedLib(lib)}
-        >
-          {lib.name}
-          <kbd className="shortcut-hint">{lib.mediaType === 'book' ? 'B' : 'P'}</kbd>
-        </button>
-      ))}
-    </div>
-  );
-
   if (loading) {
     return <div className="loading">Loading...</div>;
   }
@@ -264,7 +248,6 @@ export default function Library() {
   if (selectedLib?.mediaType === 'podcast') {
     return (
       <div className="library">
-        {libraryTabs}
         <Podcasts libraryId={selectedLib.id} />
       </div>
     );
@@ -273,7 +256,6 @@ export default function Library() {
   if (itemsLoading || items.length === 0) {
     return (
       <div className="library">
-        {libraryTabs}
         <div className="empty-state">
           {itemsLoading ? <p>Loading...</p> : <p>No items in this library</p>}
         </div>
@@ -283,8 +265,6 @@ export default function Library() {
 
   return (
     <div className="library">
-      {libraryTabs}
-
       {hasFavourites && (
         <>
           <h2 className="library-section-header">Favourites</h2>
