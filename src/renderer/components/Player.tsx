@@ -86,7 +86,23 @@ export default function Player() {
     setCurrentTrackIndex,
   } = usePlayerStore();
   const { user, serverUrl } = useAuthStore();
-  const [showFullPlayer, setShowFullPlayer] = useState(false);
+  // Full-page player state: 'closed' | 'open' | 'closing'
+  // 'closing' drives the exit animation before unmounting
+  const [fullPlayerState, setFullPlayerState] = useState<'closed' | 'open' | 'closing'>('closed');
+
+  const openFullPlayer = useCallback(() => {
+    setFullPlayerState('open');
+  }, []);
+
+  const closeFullPlayer = useCallback(() => {
+    setFullPlayerState('closing');
+  }, []);
+
+  const handleFullPageAnimEnd = useCallback(() => {
+    if (fullPlayerState === 'closing') {
+      setFullPlayerState('closed');
+    }
+  }, [fullPlayerState]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isBuffering, setIsBuffering] = useState(false);
@@ -715,7 +731,7 @@ export default function Player() {
           break;
         case 'f':
           e.preventDefault();
-          setShowFullPlayer(prev => !prev);
+          setFullPlayerState(prev => prev === 'open' ? 'closing' : 'open');
           break;
         case 'x':
           e.preventDefault();
@@ -768,14 +784,18 @@ export default function Player() {
       <div
         className={`mini-player ${isPlaying ? 'is-playing' : ''}`}
         style={{ '--gradient-pos': `${duration > 0 ? (currentTime / duration) * 100 : 0}%` } as React.CSSProperties}
-        onClick={() => setShowFullPlayer(true)}
       >
-        <div className="mini-player-cover">
+        <div className="mini-player-cover" onClick={openFullPlayer} title="Open full player">
           {currentItem.coverUrl ? (
             <img src={currentItem.coverUrl} alt={currentItem.title} />
           ) : (
             <div className="cover-placeholder" />
           )}
+          <div className="cover-expand-icon">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22">
+              <path d="M12 8l-6 6 1.41 1.41L12 10.83l4.59 4.58L18 14z" />
+            </svg>
+          </div>
         </div>
         <div className="mini-player-info">
           <span className="mini-player-title">{currentItem.title}</span>
@@ -946,16 +966,20 @@ export default function Player() {
         </div>
       )}
 
-      {showFullPlayer && (
-        <div className="full-player-overlay" onClick={() => setShowFullPlayer(false)}>
-          <div className="full-player" onClick={(e) => e.stopPropagation()}>
-            <button className="close-player" onClick={() => setShowFullPlayer(false)}>
-              <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
-                <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+      {fullPlayerState !== 'closed' && (
+        <div
+          className={`full-page-overlay ${fullPlayerState === 'open' ? 'full-page-enter' : 'full-page-exit'}`}
+          onClick={closeFullPlayer}
+          onAnimationEnd={handleFullPageAnimEnd}
+        >
+          <div className="full-page-player" onClick={(e) => e.stopPropagation()}>
+            <button className="full-page-close" onClick={closeFullPlayer} title="Close">
+              <svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22">
+                <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z" />
               </svg>
             </button>
 
-            <div className="full-player-cover">
+            <div className="full-page-cover">
               {currentItem.coverUrl ? (
                 <img src={currentItem.coverUrl} alt={currentItem.title} />
               ) : (
@@ -963,11 +987,11 @@ export default function Player() {
               )}
             </div>
 
-            <div className="full-player-info">
+            <div className="full-page-info">
               <h2>{currentItem.title}</h2>
               {currentItem.author && <p>{currentItem.author}</p>}
               {currentChapter && (
-                <p className="full-player-chapter">{currentChapter.title}</p>
+                <p className="full-page-chapter">{currentChapter.title}</p>
               )}
             </div>
 
@@ -979,52 +1003,54 @@ export default function Player() {
               formatTime={formatTime}
             />
 
-            {enhancedChapters.length > 0 && (
-              <>
-                {chapters.length > 0 && (
-                  <div className="chapter-nav-buttons">
-                    <button
-                      className="chapter-nav-button"
-                      onClick={() => seekToAdjacentChapter('previous')}
-                      aria-label="Previous chapter"
-                    >
-                      <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
-                        <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/>
-                      </svg>
-                      <span>Prev Chapter</span>
-                    </button>
-                    <button
-                      className="chapter-nav-button"
-                      onClick={() => seekToAdjacentChapter('next')}
-                      aria-label="Next chapter"
-                    >
-                      <span>Next Chapter</span>
-                      <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
-                        <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
-                      </svg>
-                    </button>
-                  </div>
-                )}
-                <ChapterList
-                  chapters={enhancedChapters}
-                  currentTime={currentTime}
-                  onSeekToChapter={seekToChapter}
-                />
-              </>
-            )}
+            <div className="full-page-controls-row">
+              {chapters.length > 0 && (
+                <button
+                  className="chapter-nav-button"
+                  onClick={() => seekToAdjacentChapter('previous')}
+                  aria-label="Previous chapter"
+                >
+                  <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+                    <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/>
+                  </svg>
+                  <span>Prev Chapter</span>
+                </button>
+              )}
 
-            <PlayerControls
-              isPlaying={isPlaying}
-              isLoading={isLoading}
-              isBuffering={isBuffering}
-              isSeeking={isSeeking}
-              playbackRate={playbackRate}
-              volume={volume}
-              onTogglePlay={togglePlay}
-              onSkip={skip}
-              onSetSpeed={setPlaybackRate}
-              onSetVolume={handleSetVolume}
-            />
+              <PlayerControls
+                isPlaying={isPlaying}
+                isLoading={isLoading}
+                isBuffering={isBuffering}
+                isSeeking={isSeeking}
+                playbackRate={playbackRate}
+                volume={volume}
+                onTogglePlay={togglePlay}
+                onSkip={skip}
+                onSetSpeed={setPlaybackRate}
+                onSetVolume={handleSetVolume}
+              />
+
+              {chapters.length > 0 && (
+                <button
+                  className="chapter-nav-button"
+                  onClick={() => seekToAdjacentChapter('next')}
+                  aria-label="Next chapter"
+                >
+                  <span>Next Chapter</span>
+                  <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+                    <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
+                  </svg>
+                </button>
+              )}
+            </div>
+
+            {enhancedChapters.length > 0 && (
+              <ChapterList
+                chapters={enhancedChapters}
+                currentTime={currentTime}
+                onSeekToChapter={seekToChapter}
+              />
+            )}
           </div>
         </div>
       )}
