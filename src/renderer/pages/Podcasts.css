@@ -280,8 +280,63 @@
 /* Favourites section */
 .podcast-favourites-section {
   margin-bottom: 2rem;
+  animation: podcastSectionEnter 0.35s ease both;
 }
 
 .podcast-favourites-section .library-section-header {
   margin-top: 0;
+}
+
+/* ---- Smooth entrance animations ---- */
+
+@keyframes podcastSectionEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Podcast grid items fade in with a stagger */
+.podcast-item {
+  animation: podcastItemEnter 0.3s ease both;
+}
+
+@keyframes podcastItemEnter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Stagger the first 12 items for a cascade effect */
+.podcast-item:nth-child(1)  { animation-delay: 0s; }
+.podcast-item:nth-child(2)  { animation-delay: 0.03s; }
+.podcast-item:nth-child(3)  { animation-delay: 0.06s; }
+.podcast-item:nth-child(4)  { animation-delay: 0.09s; }
+.podcast-item:nth-child(5)  { animation-delay: 0.12s; }
+.podcast-item:nth-child(6)  { animation-delay: 0.15s; }
+.podcast-item:nth-child(7)  { animation-delay: 0.18s; }
+.podcast-item:nth-child(8)  { animation-delay: 0.21s; }
+.podcast-item:nth-child(9)  { animation-delay: 0.24s; }
+.podcast-item:nth-child(10) { animation-delay: 0.27s; }
+.podcast-item:nth-child(11) { animation-delay: 0.30s; }
+.podcast-item:nth-child(12) { animation-delay: 0.33s; }
+
+/* Shelf content fades on tab switch */
+.podcast-shelf {
+  animation: podcastSectionEnter 0.3s ease both;
+}
+
+/* Tabs bar smooth entrance */
+.podcasts-tabs {
+  animation: podcastSectionEnter 0.25s ease both;
+  animation-delay: 0.05s;
 }

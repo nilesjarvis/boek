@@ -419,7 +419,7 @@ export default function Podcasts({ libraryId }: PodcastsProps) {
       </div>
 
       {currentShelf && (
-        <div className="podcast-shelf">
+        <div className="podcast-shelf" key={currentShelf.id}>
           <h2>{currentShelf.label}</h2>
           <div className="podcast-grid">
             {currentShelf.entities.map((item: any, index: number) => {

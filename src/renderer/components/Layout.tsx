@@ -22,9 +22,10 @@ export default function Layout({ children }: LayoutProps) {
   const [showThemePicker, setShowThemePicker] = useState(false);
   const themePickerRef = useRef<HTMLDivElement>(null);
 
-  // Track previous path for transition direction
+  // Track previous path + selected library for transition
   const [transitionState, setTransitionState] = useState<'enter' | 'idle'>('idle');
   const prevPathRef = useRef(location.pathname);
+  const prevLibRef = useRef(selectedLib?.id);
 
   useEffect(() => {
     if (prevPathRef.current !== location.pathname) {
@@ -34,6 +35,17 @@ export default function Layout({ children }: LayoutProps) {
       return () => clearTimeout(timer);
     }
   }, [location.pathname]);
+
+  // Also animate when switching between library tabs (Books/Podcasts)
+  useEffect(() => {
+    if (prevLibRef.current !== undefined && prevLibRef.current !== selectedLib?.id) {
+      setTransitionState('enter');
+      const timer = setTimeout(() => setTransitionState('idle'), 350);
+      prevLibRef.current = selectedLib?.id;
+      return () => clearTimeout(timer);
+    }
+    prevLibRef.current = selectedLib?.id;
+  }, [selectedLib?.id]);
 
   const isLibraryPage = location.pathname === '/';
   const hasLibraryTabs = isLibraryPage && libraries.length > 1;
