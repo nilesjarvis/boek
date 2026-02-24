@@ -4,6 +4,10 @@ A clean, minimal desktop player for [Audiobookshelf](https://www.audiobookshelf.
 
 Available as **AppImage** (works on any Linux distro) and **.deb** (Ubuntu/Debian).
 
+<p align="center">
+  <img src="images/book.png" alt="Boek audiobook library" width="800" />
+</p>
+
 ---
 
 ## Getting Started
@@ -34,11 +38,23 @@ Your login is remembered between sessions -- no need to sign in again after rest
 - **Chapter navigation** -- Jump between chapters with dedicated buttons, or click any chapter in the list.
 - **Multi-file books** -- Seamlessly handles audiobooks split across multiple files.
 
+<p align="center">
+  <img src="images/chapters.png" alt="Full-page player with chapter list" width="800" />
+</p>
+
 ### Podcasts
 
 - Personalized shelves: Continue Listening, Newest Episodes, Recently Added, Listen Again.
 - Full episode list with progress tracking per episode.
 - **Episode recommendations** -- When listening to a podcast, a scrollable bar above the mini player shows other episodes from the same podcast for quick switching.
+
+<p align="center">
+  <img src="images/podcast.png" alt="Podcast library" width="800" />
+</p>
+
+<p align="center">
+  <img src="images/podcast_channel.png" alt="Podcast channel with episode list" width="800" />
+</p>
 
 ### Favourites
 
@@ -67,6 +83,10 @@ Your progress syncs with the server in real time. Listen on your phone during a 
 18 built-in themes. Click the palette icon in the top-right to cycle through them, or right-click it for a full list.
 
 Includes: Dark, Light, Nord, Dracula, Tokyo Night, Rose Pine, Gruvbox, Solarized, Catpuccin, Ink (e-reader style), High Contrast, and more.
+
+<p align="center">
+  <img src="images/themes.png" alt="Theme selection" width="800" />
+</p>
 
 ---
 
