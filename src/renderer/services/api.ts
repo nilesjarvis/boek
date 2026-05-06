@@ -1,6 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
 import { useAuthStore } from '../stores/authStore';
 import type { AudioTrack } from '../utils/playerTypes';
+import { normalizeAudioTracks } from '../utils/audioTrackManager';
 
 export interface ABSUser {
   id: string;
@@ -16,6 +17,7 @@ export interface MediaProgress {
   id: string;
   libraryItemId: string;
   episodeId?: string;
+  mediaItemType?: string;
   duration: number;
   progress: number;
   currentTime: number;
@@ -87,6 +89,8 @@ export interface Track {
   title: string;
   path: string;
   duration: number;
+  startOffset?: number;
+  contentUrl?: string;
   codec?: string;
   bitRate?: number;
 }
@@ -387,13 +391,15 @@ class ABSApi {
       throw new Error('No audio stream available');
     }
     
+    const normalizedTracks = normalizeAudioTracks(response.data.audioTracks || libraryItem?.media?.tracks || []);
+
     return {
       streamUrl,
       sessionId,
       currentTime,
       duration,
       chapters,
-      audioTracks: response.data.audioTracks || libraryItem?.media?.tracks || [],
+      audioTracks: normalizedTracks,
     };
   }
 }

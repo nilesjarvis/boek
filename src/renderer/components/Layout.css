@@ -303,3 +303,46 @@
   bottom: 1px;
   right: 1px;
 }
+
+@media (max-width: 640px) {
+  .floating-nav {
+    top: 0.75rem;
+    left: 0.75rem;
+    max-width: calc(100vw - 7.5rem);
+    overflow: hidden;
+  }
+
+  .floating-nav-row,
+  .floating-nav-sub {
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .floating-nav-row::-webkit-scrollbar,
+  .floating-nav-sub::-webkit-scrollbar {
+    display: none;
+  }
+
+  .floating-nav-link {
+    padding: 0.3rem 0.55rem;
+    font-size: 0.75rem;
+  }
+
+  .floating-nav-sub-link {
+    padding: 0.2rem 0.45rem;
+  }
+
+  .floating-actions {
+    top: 0.75rem;
+    right: 0.75rem;
+  }
+
+  .shortcut-hint {
+    display: none;
+  }
+
+  .main-content {
+    padding: 6.25rem 1rem 145px;
+  }
+}

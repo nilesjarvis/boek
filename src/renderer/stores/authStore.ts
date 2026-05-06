@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { absApi } from '../services/api';
 import type { MediaProgress } from '../services/api';
 import { useEpisodeProgressStore } from './episodeProgressStore';
-import type { EpisodeProgressEntry } from './episodeProgressStore';
+import { buildLatestProgressByEpisode } from '../utils/progressUtils';
 
 interface User {
   id: string;
@@ -21,13 +21,26 @@ interface AuthState {
   getProgress: (itemId: string) => MediaProgress | null;
 }
 
-const storedUser = localStorage.getItem('user');
-const storedToken = localStorage.getItem('token');
+function readStoredUser(): User | null {
+  const storedUser = localStorage.getItem('user');
+  if (!storedUser || !localStorage.getItem('token')) return null;
+
+  try {
+    return JSON.parse(storedUser) as User;
+  } catch {
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+    return null;
+  }
+}
+
+const storedUser = readStoredUser();
+const hasStoredAuth = !!storedUser && !!localStorage.getItem('token');
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   serverUrl: localStorage.getItem('serverUrl') || '',
-  user: storedToken && storedUser ? JSON.parse(storedUser) : null,
-  isAuthenticated: !!storedToken,
+  user: storedUser,
+  isAuthenticated: hasStoredAuth,
   setServerUrl: (url: string) => {
     localStorage.setItem('serverUrl', url);
     set({ serverUrl: url });
@@ -40,20 +53,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     // Seed the episode progress store from the login response so that progress
     // is available immediately on the Podcasts page without waiting for an API call.
     if (user.mediaProgress) {
-      const entries: Record<string, EpisodeProgressEntry> = {};
-      for (const mp of user.mediaProgress) {
-        if (mp.episodeId) {
-          entries[mp.episodeId] = {
-            id: mp.episodeId,
-            progress: mp.progress || 0,
-            isFinished: mp.isFinished || false,
-            currentTime: mp.currentTime || 0,
-            duration: mp.duration || 0,
-            updatedAt: mp.lastUpdate || Date.now(),
-          };
-        }
-      }
-      useEpisodeProgressStore.getState().mergeProgress(entries);
+      useEpisodeProgressStore.getState().mergeProgress(buildLatestProgressByEpisode(user.mediaProgress));
     }
   },
   logout: () => {

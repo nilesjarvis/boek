@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { LibraryItem as LibraryItemType, MediaProgress } from '../services/api';
 import { absApi } from '../services/api';
@@ -6,6 +6,7 @@ import { useAuthStore } from '../stores/authStore';
 import { usePlayerStore } from '../stores/playerStore';
 import { useFavouritesStore } from '../stores/favouritesStore';
 import { useLibraryNavStore } from '../stores/libraryNavStore';
+import { buildLatestProgressByItem } from '../utils/progressUtils';
 import Podcasts from './Podcasts';
 import './Library.css';
 
@@ -19,16 +20,9 @@ export default function Library() {
   const { isAuthenticated } = useAuthStore();
   const { playItem: playStoreItem } = usePlayerStore();
   const { favouriteIds, toggleFavourite, isFavourite } = useFavouritesStore();
+  const itemsRequestRef = useRef(0);
 
-  useEffect(() => {
-    if (!isAuthenticated) {
-      navigate('/login');
-      return;
-    }
-    loadLibraries();
-  }, [isAuthenticated, navigate]);
-
-  const loadLibraries = async () => {
+  const loadLibraries = useCallback(async () => {
     try {
       const libs = await absApi.getLibraries();
       setLibraries(libs);
@@ -40,7 +34,40 @@ export default function Library() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [setLibraries, setSelectedLib]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+    loadLibraries();
+  }, [isAuthenticated, navigate, loadLibraries]);
+
+  const loadItems = useCallback(async (libraryId: string) => {
+    const requestId = ++itemsRequestRef.current;
+    setItemsLoading(true);
+
+    try {
+      const [itemsData, userData] = await Promise.all([
+        absApi.getLibraryItems(libraryId),
+        absApi.getUserMe(),
+      ]);
+
+      if (itemsRequestRef.current !== requestId) return;
+
+      setItems(itemsData);
+      setItemProgress(buildLatestProgressByItem(userData.mediaProgress));
+    } catch (err) {
+      if (itemsRequestRef.current === requestId) {
+        console.error('Failed to load items:', err);
+      }
+    } finally {
+      if (itemsRequestRef.current === requestId) {
+        setItemsLoading(false);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     if (selectedLib) {
@@ -48,11 +75,13 @@ export default function Library() {
       setItems([]);
       setItemProgress({});
       if (selectedLib.mediaType !== 'podcast') {
-        setItemsLoading(true);
         loadItems(selectedLib.id);
+      } else {
+        itemsRequestRef.current += 1;
+        setItemsLoading(false);
       }
     }
-  }, [selectedLib]);
+  }, [selectedLib, loadItems]);
 
   // Refresh progress when page gains focus
   useEffect(() => {
@@ -92,33 +121,6 @@ export default function Library() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [libraries, selectedLib]);
-
-  const loadItems = async (libraryId: string) => {
-    try {
-      const itemsData = await absApi.getLibraryItems(libraryId);
-      setItems(itemsData);
-      setItemsLoading(false);
-      
-      // Fetch progress for each item
-      const progressMap: Record<string, MediaProgress> = {};
-      await Promise.all(
-        itemsData.map(async (item) => {
-          try {
-            const progress = await absApi.getPlaybackProgress(item.id);
-            if (progress) {
-              progressMap[item.id] = progress;
-            }
-          } catch (err) {
-            console.error(`Failed to load progress for ${item.id}:`, err);
-          }
-        })
-      );
-      setItemProgress(progressMap);
-    } catch (err) {
-      console.error('Failed to load items:', err);
-      setItemsLoading(false);
-    }
-  };
 
   const playItem = useCallback((item: LibraryItemType) => {
     const user = useAuthStore.getState().user;

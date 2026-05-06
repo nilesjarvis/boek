@@ -5,8 +5,8 @@ import { useAuthStore } from '../stores/authStore';
 import { usePlayerStore } from '../stores/playerStore';
 import { useFavouritesStore } from '../stores/favouritesStore';
 import { useEpisodeProgressStore } from '../stores/episodeProgressStore';
-import type { EpisodeProgressEntry } from '../stores/episodeProgressStore';
 import { websocketService } from '../services/websocket';
+import { buildLatestProgressByEpisode } from '../utils/progressUtils';
 import PodcastDetail from '../components/PodcastDetail';
 import './Podcasts.css';
 
@@ -99,18 +99,14 @@ export default function Podcasts({ libraryId }: PodcastsProps) {
       }
     };
     fetchMissing();
-  }, [favouriteIds, shelves]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [favouriteIds, shelves, fetchedFavourites]);
 
   useEffect(() => {
-    console.log('Podcasts: Component mounted, WebSocket connected:', websocketService.isConnected());
-    
     // Try to connect WebSocket if not connected
     if (!websocketService.isConnected()) {
-      console.log('Podcasts: Attempting to connect WebSocket...');
       websocketService.connect();
     } else {
       // If already connected, request fresh user data
-      console.log('Podcasts: WebSocket already connected, requesting user data...');
       websocketService.requestUserData();
     }
   }, []);
@@ -126,24 +122,10 @@ export default function Podcasts({ libraryId }: PodcastsProps) {
   const fetchEpisodeProgress = useCallback(async () => {
     try {
       const { mediaProgress } = await absApi.getUserMe();
-      const progressMap: Record<string, EpisodeProgressEntry> = {};
-
-      for (const mp of mediaProgress) {
-        if (mp.episodeId) {
-          progressMap[mp.episodeId] = {
-            id: mp.episodeId,
-            progress: mp.progress || 0,
-            isFinished: mp.isFinished || false,
-            currentTime: mp.currentTime || 0,
-            duration: mp.duration || 0,
-            updatedAt: mp.lastUpdate || Date.now(),
-          };
-        }
-      }
 
       // Merge into persistent store -- existing entries not in the response are preserved,
       // and entries are only overwritten if the incoming data is newer.
-      mergeProgress(progressMap);
+      mergeProgress(buildLatestProgressByEpisode(mediaProgress));
     } catch (err) {
       console.error('[Podcasts] Failed to fetch episode progress:', err);
     }
@@ -370,7 +352,7 @@ export default function Podcasts({ libraryId }: PodcastsProps) {
                     ) : null}
                     <div className={`podcast-cover-placeholder ${coverUrl ? 'hidden' : ''}`}>
                       <svg viewBox="0 0 24 24" fill="currentColor" width="48" height="48">
-                        <path d="M12 14c1.66 0 2.99-1.34 2.99-3s-1.33-3-2.99-3c-1.66 0-3 1.34-3 3s1.34 3 3 3zm0 2c-2.33 0-6.98-1.12-7-7 7h14c-.02-5.86-4.67-7-7-7zm0-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
+                        <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 4a3 3 0 0 1 3 3v3a3 3 0 0 1-6 0V9a3 3 0 0 1 3-3zm-5 12v-1.5C7 14.6 10.3 14 12 14s5 .6 5 2.5V18H7z"/>
                       </svg>
                     </div>
                     <button
@@ -510,7 +492,7 @@ export default function Podcasts({ libraryId }: PodcastsProps) {
                     ) : null}
                     <div className={`podcast-cover-placeholder ${coverUrl ? 'hidden' : ''}`}>
                       <svg viewBox="0 0 24 24" fill="currentColor" width="48" height="48">
-                        <path d="M12 14c1.66 0 2.99-1.34 2.99-3s-1.33-3-2.99-3c-1.66 0-3 1.34-3 3s1.34 3 3 3zm0 2c-2.33 0-6.98-1.12-7-7 7h14c-.02-5.86-4.67-7-7-7zm0-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
+                        <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 4a3 3 0 0 1 3 3v3a3 3 0 0 1-6 0V9a3 3 0 0 1 3-3zm-5 12v-1.5C7 14.6 10.3 14 12 14s5 .6 5 2.5V18H7z"/>
                       </svg>
                     </div>
                     {!isPodcast && episodeItem && episodeProgress[episodeItem.id]?.isFinished && (

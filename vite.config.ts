@@ -9,6 +9,15 @@ export default defineConfig({
   build: {
     outDir: '../../dist/renderer',
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          react: ['react', 'react-dom', 'react-router-dom'],
+          state: ['zustand'],
+          realtime: ['socket.io-client'],
+        },
+      },
+    },
   },
   resolve: {
     alias: {

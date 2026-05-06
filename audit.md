@@ -1,254 +1,153 @@
-# Audiobookshelf Player Audit Report
+# Audiobookshelf Player Audit
 
-Based on my comprehensive audit of the audiobookshelf client codebase, here are my findings and recommendations for improvements, with a primary focus on the player and chapter handling:
+Date: 2026-05-06
 
-## 1. Chapter Handling Issues & Improvements
+## Scope
 
-### Current Issues:
-- **No chapter boundary validation** (src/renderer/components/Player.tsx:849-862): Chapter navigation doesn't validate if the requested time is within chapter bounds
-- **Chapter UI doesn't show duration**: Only start time is displayed, making it hard to understand chapter length
-- **No chapter progress indicators**: Users can't see which chapters they've completed
-- **Multi-track chapter sync complexity**: The conversion between track-relative and global time is error-prone
+This audit focused on the reliability and performance of the Electron/React Audiobookshelf client, especially the flows a listener depends on most:
 
-### Recommended Improvements:
-```typescript
-// Add chapter validation and enriched metadata
-interface EnhancedChapter extends Chapter {
-  duration: number;
-  progress: number; // 0-1 percentage completed
-  isCompleted: boolean;
-  trackIndex?: number; // For multi-track books
-}
+- logging in and resuming a remembered server
+- browsing book and podcast libraries
+- preserving playback/progress state
+- multi-file audiobook seeking
+- search responsiveness
+- mobile layout constraints
+- build/test/dependency health
 
-// Add chapter boundary validation
-const seekToChapter = (chapter: Chapter) => {
-  const clampedTime = Math.max(chapter.start, Math.min(chapter.end - 0.1, chapter.start));
-  seek(clampedTime);
-};
+The supplied Audiobookshelf server at `http://192.168.178.195:13378` was reachable during the audit. The server returned two libraries, books and podcasts, and 476 progress entries for the test account.
 
-// Add visual chapter progress
-<div className="chapter-progress-bar" 
-     style={{ width: `${chapter.progress * 100}%` }} />
-```
+## Findings And Changes
 
-## 2. Multi-Track/Multi-File Audiobook Handling
+### Library Progress Loading
 
-### Current Issues:
-- **Complex track transition logic** (src/renderer/components/Player.tsx:88-144): Track loading is spread across multiple functions
-- **Potential race conditions**: When switching tracks rapidly, multiple loads could conflict
-- **No preloading**: Next track isn't preloaded, causing delays between chapters
-- **Global time calculation errors**: Manual offset calculations are error-prone
+The book library previously fetched progress with one request per item after loading the item list. On the test server, progress is already available in bulk from `/api/me`, and the login response also contains the same style of progress array.
 
-### Recommended Improvements:
-```typescript
-// Implement a track manager class
-class AudioTrackManager {
-  private tracks: AudioTrack[];
-  private preloadedTrack: HTMLAudioElement | null;
-  
-  async preloadNextTrack(currentIndex: number) {
-    if (currentIndex < this.tracks.length - 1) {
-      this.preloadedTrack = new Audio();
-      this.preloadedTrack.src = this.getTrackUrl(currentIndex + 1);
-      this.preloadedTrack.load();
-    }
-  }
-  
-  getGlobalTime(trackIndex: number, trackTime: number): number {
-    // Centralized time calculation with validation
-  }
-  
-  findTrackForTime(globalTime: number): { trackIndex: number; trackTime: number } {
-    // Binary search for efficiency with large track counts
-  }
-}
-```
+Change:
+- Replaced per-item progress polling in `Library.tsx` with a single bulk progress fetch.
+- Added staleness-aware progress merge helpers in `progressUtils.ts`.
+- Reused the same helper for podcast episode progress seeding and refreshes.
 
-## 3. Progress Synchronization & State Management
+Risk reduced:
+- Faster library load on large libraries.
+- Fewer server requests and less UI flicker.
+- Duplicate progress rows now resolve consistently to the newest entry.
 
-### Current Issues:
-- **Debounced sync can lose data** (src/renderer/components/Player.tsx:42-85): If user closes app during debounce period
-- **No offline queue**: Progress updates fail silently when offline
-- **Redundant state updates**: Both player store and episode progress store maintain similar data
-- **WebSocket sync conflicts**: Potential race conditions between local and remote updates
+### Multi-File Audiobook Time Math
 
-### Recommended Improvements:
-```typescript
-// Implement offline-capable progress queue
-interface ProgressQueue {
-  pending: ProgressUpdate[];
-  
-  async sync(): Promise<void> {
-    // Batch sync pending updates
-    // Retry failed updates with exponential backoff
-  }
-  
-  persist(): void {
-    // Save to electron-store for offline persistence
-  }
-}
+Track conversion was split between ad hoc helpers and a manager class, and older API track shapes could omit `startOffset`. That can lead to bad seek positions or `NaN`-style behavior around track boundaries.
 
-// Consolidate progress state
-const useUnifiedProgressStore = create((set, get) => ({
-  // Single source of truth for all progress data
-  // Handle both books and podcasts uniformly
-}));
-```
+Change:
+- Centralized track normalization, boundary lookup, URL building, and track-time conversion in `audioTrackManager.ts`.
+- Normalized missing `startOffset` values from cumulative duration.
+- Added empty/out-of-range guards.
+- Updated the player to use the tested helpers.
 
-## 4. Error Handling & Recovery
+Risk reduced:
+- Safer resume/seek behavior for multi-file books.
+- Fewer edge case crashes around missing track data.
 
-### Current Issues:
-- **Generic error messages**: "Playback error" doesn't help users understand the issue
-- **No retry mechanism for failed track loads**: User must manually reload
-- **HLS errors not properly surfaced**: Complex HLS errors shown as simple "Failed to load"
-- **No network status awareness**: Doesn't detect offline state
+### Chapter Edge Cases
 
-### Recommended Improvements:
-```typescript
-// Enhanced error handling
-enum PlayerError {
-  NETWORK_OFFLINE = 'network_offline',
-  AUTH_EXPIRED = 'auth_expired',
-  TRACK_NOT_FOUND = 'track_not_found',
-  FORMAT_UNSUPPORTED = 'format_unsupported',
-  HLS_MANIFEST_ERROR = 'hls_manifest_error',
-}
+Zero-length or malformed chapters could produce invalid progress values, and chapter seek clamping did not fully guard `end <= start`.
 
-class PlayerErrorHandler {
-  async handleError(error: PlayerError, context: any) {
-    switch(error) {
-      case PlayerError.NETWORK_OFFLINE:
-        // Queue for retry, show offline indicator
-        break;
-      case PlayerError.AUTH_EXPIRED:
-        // Trigger re-authentication flow
-        break;
-      // ... specific handling for each error type
-    }
-  }
-}
-```
+Change:
+- Clamped chapter durations to non-negative values.
+- Prevented `NaN` progress.
+- Ensured chapter seeks never move before the chapter start.
 
-## 5. Performance Optimizations
+### Player Load And Bundle Performance
 
-### Current Issues:
-- **Large Player component** (928 lines): Difficult to maintain and test
-- **No component memoization**: Frequent re-renders on time updates
-- **Missing cleanup in some effects**: Potential memory leaks
-- **HLS over-buffering**: 20-minute max buffer might be excessive for memory
+The initial renderer build was 863.70 kB minified before the audit. HLS was imported in the initial player bundle even though it is only needed for HLS streams.
 
-### Recommended Improvements:
-```typescript
-// Split into smaller, focused components
-const PlayerControls = React.memo(({ onPlay, onSeek, ... }) => {
-  // Only re-render when control props change
-});
+Change:
+- Lazy-loaded `hls.js`.
+- Split React, Zustand, realtime, stats, and HLS chunks.
+- Reduced HLS buffering from 10/20 minutes to 5/10 minutes and lowered max buffer memory from 60 MB to 30 MB.
 
-const ChapterList = React.memo(({ chapters, currentTime, onSeek }) => {
-  // Virtualize for books with many chapters
-});
+Result:
+- Main app chunk is now 133.37 kB minified.
+- HLS remains a large lazy chunk at 523.86 kB, but it is no longer on the initial load path.
 
-const ProgressBar = React.memo(({ ... }) => {
-  // Debounce time updates to reduce re-renders
-});
+### Search And Library Race Conditions
 
-// Optimize HLS configuration
-const hlsConfig = {
-  maxBufferLength: 300, // 5 minutes instead of 10
-  maxMaxBufferLength: 600, // 10 minutes instead of 20
-  // Add adaptive bitrate settings
-};
-```
+Search and library switching could allow older async responses to overwrite newer UI state.
 
-## 6. Testing Infrastructure
+Change:
+- Added request sequence guards to search.
+- Added request sequence guards to library item loading.
+- Clearing or closing search now cancels stale result writes.
 
-### Critical Issue:
-- **No tests exist**: The entire player functionality lacks test coverage
+### WebSocket Noise And Manual Ping
 
-### Recommended Testing Strategy:
-```typescript
-// Unit tests for critical functions
-describe('AudioTrackManager', () => {
-  test('calculates global time correctly', () => {
-    // Test time calculations across track boundaries
-  });
-  
-  test('handles track transitions', () => {
-    // Test seamless playback between tracks
-  });
-});
+The WebSocket service emitted noisy production logs and manually wrote raw Socket.IO ping frames even though Socket.IO already manages heartbeat.
 
-// Integration tests for player flows
-describe('Player Integration', () => {
-  test('resumes playback at correct position', async () => {
-    // Test progress restore functionality
-  });
-  
-  test('syncs progress during playback', async () => {
-    // Test periodic sync behavior
-  });
-});
+Change:
+- Moved diagnostic logs behind `import.meta.env.DEV`.
+- Removed the manual raw ping interval.
 
-// E2E tests for critical user journeys
-describe('Chapter Navigation', () => {
-  test('user can skip between chapters', async () => {
-    // Test chapter selection and playback
-  });
-});
-```
+Risk reduced:
+- Less production console noise.
+- Less chance of protocol-level interference.
 
-## 7. Additional Improvements
+### Mobile Layout
 
-### Accessibility:
-- Add ARIA labels for player controls
-- Keyboard navigation for chapter list
-- Screen reader announcements for state changes
+CSS inspection and screenshots showed the compact top navigation and mini-player controls were the highest-risk responsive areas.
 
-### User Experience:
-- Add playback queue functionality
-- Implement sleep timer
-- Add bookmark/notes feature
-- Show remaining time per chapter
-- Add gesture controls (swipe to skip)
+Change:
+- Added mobile layout constraints for the floating nav/actions.
+- Added mobile mini-player compaction.
+- Hid nonessential mini-player sliders/buttons on narrow screens.
+- Added mobile padding for the login screen.
 
-### Performance Monitoring:
-- Add performance metrics collection
-- Monitor buffer health and rebuffering events
-- Track sync success/failure rates
+Screenshots were generated under `/tmp/boek-ui-audit`:
 
-### Architecture:
-- Consider using XState for complex player state management
-- Implement service worker for offline capability
-- Add proper dependency injection for testing
+- `login-mobile.png`
+- `library-desktop.png`
+- `library-mobile.png`
+- `stats-desktop.png`
 
-## Priority Recommendations
+Authenticated Vite-browser screenshots cannot fully load server data because the real server does not allow the Vite browser origin; the Electron app currently bypasses that with its web-security setting. The repo now includes `scripts/bidi-ui-audit.mjs` for fuller browser automation where a WebDriver BiDi port is available.
 
-### High Priority (Address immediately):
-1. Fix chapter boundary validation
-2. Implement proper error handling with retry logic
-3. Add basic test coverage for critical paths
-4. Fix potential memory leaks in effect cleanups
+### Tests
 
-### Medium Priority (Next sprint):
-1. Refactor large Player component into smaller pieces
-2. Implement offline progress queue
-3. Add chapter progress indicators
-4. Improve multi-track transition handling
+Vitest was added with focused coverage for:
 
-### Low Priority (Future enhancements):
-1. Add accessibility features
-2. Implement advanced features (bookmarks, sleep timer)
-3. Add performance monitoring
-4. Optimize HLS buffering strategy
+- progress merge freshness and clamping
+- item progress vs episode progress separation
+- track normalization and boundary lookup
+- authenticated track URL construction
+- chapter zero-duration and seek clamping behavior
 
-## Summary
+Current result: 14 tests passing.
 
-The audiobookshelf player implementation is functional but has several areas that need improvement, particularly around chapter handling and multi-track audiobook support. The most critical issues are:
+### Dependency Audit
 
-1. **Chapter handling lacks validation and progress tracking** - users can't see which chapters they've completed or navigate safely
-2. **Multi-track audiobooks have complex, error-prone logic** - the time conversion between tracks needs centralization
-3. **No test coverage** - critical player functionality is untested
-4. **Error handling is too generic** - users don't get helpful feedback when issues occur
-5. **Large monolithic component** - the 928-line Player.tsx file needs decomposition
+`npm audit fix` was applied for non-breaking updates.
 
-The codebase would benefit most from addressing the high-priority items first: chapter validation, error handling, basic testing, and memory leak fixes. The player works but needs these improvements to be production-ready and maintainable.
+Remaining audit findings require forced major upgrades:
+
+- Electron 28 to Electron 42
+- electron-builder 24 to 26
+- Vite 5 to 8
+
+Those upgrades were intentionally not forced in this pass because they affect packaging/runtime behavior and need separate validation.
+
+## Verification
+
+Commands run:
+
+- `npm install`
+- `npm install -D vitest`
+- `npm run test`
+- `npx tsc -p tsconfig.renderer.json --noEmit`
+- `npx tsc -p tsconfig.main.json --noEmit`
+- `npm run build`
+- `npm audit --audit-level=moderate`
+- `npm audit fix`
+
+Current status:
+
+- Tests pass.
+- Renderer and main TypeScript builds pass.
+- Production build passes.
+- `npm audit` still reports forced-major-upgrade findings only.

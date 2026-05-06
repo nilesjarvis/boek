@@ -1,0 +1,39 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Boek Audit Frame</title>
+<style>
+  html,
+  body,
+  iframe {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    border: 0;
+    overflow: hidden;
+    background: #0f1115;
+  }
+</style>
+<iframe id="app" title="Boek audit target"></iframe>
+<script>
+  const params = new URLSearchParams(location.hash.slice(1));
+  const serverUrl = params.get('serverUrl');
+  const token = params.get('token');
+  const user = params.get('user');
+  const next = params.get('next') || '/#/';
+
+  if (serverUrl && token && user) {
+    localStorage.setItem('serverUrl', serverUrl);
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', user);
+  }
+
+  document.getElementById('app').src = next;
+
+  const delaySrc = params.get('delaySrc');
+  if (delaySrc) {
+    const script = document.createElement('script');
+    script.async = true;
+    script.src = delaySrc;
+    document.head.appendChild(script);
+  }
+</script>

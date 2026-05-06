@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { Suspense, lazy, useEffect } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './themes/ThemeProvider';
 import { useAuthStore } from './stores/authStore';
@@ -8,7 +8,8 @@ import Layout from './components/Layout';
 import Player from './components/Player';
 import Login from './pages/Login';
 import Library from './pages/Library';
-import Stats from './pages/Stats';
+
+const Stats = lazy(() => import('./pages/Stats'));
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuthStore();
@@ -19,28 +20,16 @@ export default function App() {
   const { isAuthenticated, serverUrl, user } = useAuthStore();
   
   useEffect(() => {
-    console.log('App: Initial mount - auth status:', { 
-      isAuthenticated, 
-      serverUrl, 
-      hasUser: !!user,
-      hasToken: !!user?.token 
-    });
-    
     // Initialize API if we have stored credentials
     if (isAuthenticated && serverUrl && user?.token) {
-      console.log('App: Initializing API with stored credentials...');
       absApi.init(serverUrl, user.token);
     }
   }, []); // Run once on mount
   
   useEffect(() => {
-    console.log('App: Authentication status changed:', isAuthenticated);
-    
     if (isAuthenticated) {
-      console.log('App: Connecting WebSocket...');
       websocketService.connect();
     } else {
-      console.log('App: Disconnecting WebSocket...');
       websocketService.disconnect();
     }
     
@@ -71,7 +60,9 @@ export default function App() {
             element={
               <PrivateRoute>
                 <Layout>
-                  <Stats />
+                  <Suspense fallback={<div className="loading">Loading...</div>}>
+                    <Stats />
+                  </Suspense>
                 </Layout>
                 <Player />
               </PrivateRoute>

@@ -59,6 +59,7 @@ export default function Search() {
   const [libraries, setLibraries] = useState<Library[]>([]);
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const searchRequestRef = useRef(0);
   const { playItem: playStoreItem } = usePlayerStore();
   const { isFavourite, toggleFavourite } = useFavouritesStore();
   const [detailPodcast, setDetailPodcast] = useState<{ itemId: string; coverUrl: string | null } | null>(null);
@@ -119,8 +120,12 @@ export default function Search() {
 
   // Search across all libraries
   const handleSearch = useCallback(async (searchQuery: string) => {
-    if (!searchQuery.trim()) {
+    const trimmedQuery = searchQuery.trim();
+    const requestId = ++searchRequestRef.current;
+
+    if (!trimmedQuery || libraries.length === 0) {
       setRawResults([]);
+      setLoading(false);
       return;
     }
 
@@ -129,7 +134,7 @@ export default function Search() {
       const results = await Promise.all(
         libraries.map(async (lib) => {
           try {
-            const data = await absApi.searchLibrary(lib.id, searchQuery);
+            const data = await absApi.searchLibrary(lib.id, trimmedQuery);
             return { library: lib, data };
           } catch (err) {
             console.error(`Search failed for library ${lib.name}:`, err);
@@ -137,19 +142,27 @@ export default function Search() {
           }
         })
       );
-      setRawResults(results);
+      if (searchRequestRef.current === requestId) {
+        setRawResults(results);
+      }
     } catch (err) {
       console.error('Search failed:', err);
-      setRawResults([]);
+      if (searchRequestRef.current === requestId) {
+        setRawResults([]);
+      }
     } finally {
-      setLoading(false);
+      if (searchRequestRef.current === requestId) {
+        setLoading(false);
+      }
     }
   }, [libraries]);
 
   // Debounce search
   useEffect(() => {
-    if (!query) {
+    if (!query.trim()) {
+      searchRequestRef.current += 1;
       setRawResults([]);
+      setLoading(false);
       return;
     }
     const timer = setTimeout(() => {
@@ -290,9 +303,11 @@ export default function Search() {
   }, []);
 
   const closeSearch = () => {
+    searchRequestRef.current += 1;
     setIsOpen(false);
     setQuery('');
     setRawResults([]);
+    setLoading(false);
   };
 
   const openSearch = () => {

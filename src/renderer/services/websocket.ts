@@ -1,6 +1,12 @@
 import { io, Socket } from 'socket.io-client';
 import { useAuthStore } from '../stores/authStore';
 
+const debugLog = (...args: unknown[]) => {
+  if (import.meta.env.DEV) {
+    console.debug(...args);
+  }
+};
+
 interface ProgressUpdate {
   id: string;
   userId: string;
@@ -30,7 +36,6 @@ class WebSocketService {
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectDelay = 1000;
-  private pingInterval: NodeJS.Timeout | null = null;
   private progressListeners: Set<(progress: ProgressUpdate) => void> = new Set();
   private sessionListeners: Set<(session: SessionUpdate) => void> = new Set();
   private isInitialized = false;
@@ -45,7 +50,7 @@ class WebSocketService {
   connect() {
     const { serverUrl, user } = useAuthStore.getState();
     
-    console.log('WebSocket: Connect called with:', { serverUrl, hasToken: !!user?.token });
+    debugLog('WebSocket: Connect called with:', { serverUrl, hasToken: !!user?.token });
     
     if (!serverUrl || !user?.token) {
       console.warn('WebSocket: Cannot connect without server URL and token');
@@ -53,18 +58,18 @@ class WebSocketService {
     }
 
     if (this.socket?.connected) {
-      console.log('WebSocket: Already connected');
+      debugLog('WebSocket: Already connected');
       return;
     }
 
     // Prevent multiple connection attempts
     if (this.isInitialized) {
-      console.log('WebSocket: Connection already initialized');
+      debugLog('WebSocket: Connection already initialized');
       return;
     }
     this.isInitialized = true;
 
-    console.log('WebSocket: Connecting to', serverUrl);
+    debugLog('WebSocket: Connecting to', serverUrl);
 
     // Parse the server URL to get the WebSocket URL
     const url = new URL(serverUrl);
@@ -73,8 +78,8 @@ class WebSocketService {
 
     // Create socket with specific transport and path
     // AudioBookshelf uses the path /audiobookshelf/socket.io/
-    console.log('WebSocket: Creating socket with URL:', wsUrl);
-    console.log('WebSocket: Using path: /audiobookshelf/socket.io/');
+    debugLog('WebSocket: Creating socket with URL:', wsUrl);
+    debugLog('WebSocket: Using path: /audiobookshelf/socket.io/');
     
     this.socket = io(wsUrl, {
       transports: ['websocket'],
@@ -97,7 +102,7 @@ class WebSocketService {
 
     // Connection events
     this.socket.on('connect', () => {
-      console.log('WebSocket: Connected, socket ID:', this.socket?.id);
+      debugLog('WebSocket: Connected, socket ID:', this.socket?.id);
       this.reconnectAttempts = 0;
       this.isInitialized = true;
       
@@ -105,13 +110,10 @@ class WebSocketService {
       // But we still need to send the auth event for AudioBookshelf
       this.handleAuth();
       
-      // Start ping interval to keep connection alive
-      this.startPingInterval();
     });
 
     this.socket.on('disconnect', (reason) => {
-      console.log('WebSocket: Disconnected:', reason);
-      this.stopPingInterval();
+      debugLog('WebSocket: Disconnected:', reason);
       this.isInitialized = false;
     });
 
@@ -174,28 +176,10 @@ class WebSocketService {
       return;
     }
 
-    console.log('WebSocket: Authenticating...');
+    debugLog('WebSocket: Authenticating...');
     
     // Send auth event with token
     this.socket.emit('auth', user.token);
-  }
-
-  private startPingInterval() {
-    // Send ping every 25 seconds to keep connection alive
-    this.pingInterval = setInterval(() => {
-      if (this.socket?.connected) {
-        // Socket.IO handles ping/pong automatically, but we can send a custom ping
-        // The raw '2' message is a Socket.IO protocol ping
-        this.socket.io.engine.write('2');
-      }
-    }, 25000);
-  }
-
-  private stopPingInterval() {
-    if (this.pingInterval) {
-      clearInterval(this.pingInterval);
-      this.pingInterval = null;
-    }
   }
 
   private handleProgressUpdate(progress: any) {
@@ -276,8 +260,7 @@ class WebSocketService {
   }
 
   disconnect() {
-    console.log('WebSocket: Disconnecting...');
-    this.stopPingInterval();
+    debugLog('WebSocket: Disconnecting...');
     
     if (this.socket) {
       this.socket.disconnect();
@@ -321,7 +304,7 @@ class WebSocketService {
       return;
     }
     
-    console.log('WebSocket: Requesting current user data...');
+    debugLog('WebSocket: Requesting current user data...');
     // This might trigger a user_updated event with fresh data
     this.socket.emit('user_get_data');
   }

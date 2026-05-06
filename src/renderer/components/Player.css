@@ -801,6 +801,64 @@
   color: var(--fg);
 }
 
+@media (max-width: 640px) {
+  .mini-player {
+    height: 72px;
+    padding: 0 0.75rem;
+    gap: 0.65rem;
+  }
+
+  .mini-player-cover {
+    width: 48px;
+    height: 48px;
+    border-radius: 7px;
+  }
+
+  .mini-player-title {
+    font-size: 0.9rem;
+  }
+
+  .mini-player-author,
+  .mini-player-chapter,
+  .player-error {
+    font-size: 0.7rem;
+  }
+
+  .mini-speed-button {
+    padding: 0.2rem 0.35rem;
+  }
+
+  .mini-volume-control {
+    gap: 0;
+  }
+
+  .mini-volume-slider,
+  .shortcuts-button {
+    display: none;
+  }
+
+  .full-page-player {
+    padding: 1rem;
+    gap: 1rem;
+  }
+
+  .full-page-cover {
+    width: min(70vw, 260px);
+  }
+
+  .full-page-controls-row {
+    gap: 0.5rem;
+  }
+
+  .full-player-controls {
+    gap: 0.45rem;
+  }
+
+  .volume-slider {
+    display: none;
+  }
+}
+
 .shortcuts-overlay {
   position: fixed;
   inset: 0;

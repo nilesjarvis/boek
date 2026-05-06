@@ -2,46 +2,20 @@ import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { usePlayerStore } from '../stores/playerStore';
 import { useAuthStore } from '../stores/authStore';
 import { absApi } from '../services/api';
-import Hls from 'hls.js';
+import type Hls from 'hls.js';
 import { PlayerControls } from './PlayerControls';
 import { ChapterList } from './ChapterList';
 import { ProgressBar } from './ProgressBar';
 import { ChapterUtils } from '../utils/chapterUtils';
 import { AudioTrack } from '../utils/playerTypes';
+import {
+  buildAuthenticatedTrackUrl,
+  findTrackForGlobalTime,
+  hasMultipleTracks,
+  trackTimeToGlobal,
+} from '../utils/audioTrackManager';
 import EpisodeRecommendations from './EpisodeRecommendations';
 import './Player.css';
-
-// Helper: given a global time and an array of tracks, find the track index and track-relative time.
-// Uses a linear scan (fine for typical audiobook track counts of <100).
-function findTrackForGlobalTime(
-  tracks: AudioTrack[],
-  globalTime: number
-): { trackIndex: number; trackTime: number } {
-  if (tracks.length === 0) return { trackIndex: 0, trackTime: globalTime };
-
-  for (let i = 0; i < tracks.length; i++) {
-    const track = tracks[i];
-    const trackEnd = track.startOffset + track.duration;
-    if (globalTime >= track.startOffset && globalTime < trackEnd) {
-      return { trackIndex: i, trackTime: globalTime - track.startOffset };
-    }
-  }
-
-  // Past the end -- clamp to end of last track
-  const last = tracks[tracks.length - 1];
-  return { trackIndex: tracks.length - 1, trackTime: last.duration };
-}
-
-// Helper: convert track-relative time to global time
-function trackTimeToGlobal(tracks: AudioTrack[], trackIndex: number, trackTime: number): number {
-  if (!tracks.length || trackIndex < 0 || trackIndex >= tracks.length) return trackTime;
-  return tracks[trackIndex].startOffset + trackTime;
-}
-
-// Helper: is this a multi-track (multi-file) book?
-function isMultiTrack(tracks: AudioTrack[]): boolean {
-  return tracks.length > 1;
-}
 
 export default function Player() {
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -132,7 +106,7 @@ export default function Player() {
       return usePlayerStore.getState().currentTime;
     }
     const trackTime = audioRef.current.currentTime;
-    if (isMultiTrack(audioTracks as AudioTrack[])) {
+    if (hasMultipleTracks(audioTracks as AudioTrack[])) {
       return trackTimeToGlobal(audioTracks as AudioTrack[], currentTrackIndex, trackTime);
     }
     return trackTime;
@@ -178,7 +152,8 @@ export default function Player() {
   // ----- Track loading: load a specific audio file by index -----
   const loadAudioTrackInternal = async (trackIndex: number, seekToTime?: number, tracks?: AudioTrack[]) => {
     const tracksToUse = tracks || (audioTracks as AudioTrack[]);
-    if (!tracksToUse || tracksToUse.length === 0 || !audioRef.current) return;
+    const audio = audioRef.current;
+    if (!tracksToUse || tracksToUse.length === 0 || !audio) return;
     
     const track = tracksToUse[trackIndex];
     if (!track) return;
@@ -187,7 +162,7 @@ export default function Player() {
     isTransitioningTrackRef.current = true;
     
     const { serverUrl: srv, user: u } = useAuthStore.getState();
-    const trackUrl = `${srv}${track.contentUrl}?token=${u?.token}`;
+    const trackUrl = buildAuthenticatedTrackUrl(srv, track.contentUrl, u?.token || '');
     
     // Clean up any existing HLS instance
     if (hlsRef.current) {
@@ -202,42 +177,48 @@ export default function Player() {
     }
     
     // Pause before changing source to avoid interruption errors
-    audioRef.current.pause();
-    
-    // Load the new track
-    audioRef.current.src = trackUrl;
-    audioRef.current.load();
-    
-    // If we need to seek to a specific time within this track
-    if (seekToTime !== undefined && seekToTime >= 0) {
-      const handleMeta = () => {
-        if (audioRef.current) {
-          audioRef.current.currentTime = seekToTime;
-          audioRef.current.removeEventListener('loadedmetadata', handleMeta);
-        }
-      };
-      audioRef.current.addEventListener('loadedmetadata', handleMeta);
-    }
+    audio.pause();
     
     // Restore playback rate on new track
     const { playbackRate: rate } = usePlayerStore.getState();
-    audioRef.current.playbackRate = rate;
+    audio.playbackRate = rate;
     
     // Wait for audio to be ready then play if needed
-    return new Promise<void>((resolve) => {
+    return new Promise<void>((resolve, reject) => {
+      const cleanup = () => {
+        audio.removeEventListener('canplay', handleCanPlay);
+        audio.removeEventListener('error', handleError);
+        audio.removeEventListener('loadedmetadata', handleMeta);
+      };
+
+      const handleMeta = () => {
+        if (seekToTime !== undefined && seekToTime >= 0) {
+          audio.currentTime = Math.min(audio.duration || seekToTime, seekToTime);
+        }
+      };
+
       const handleCanPlay = () => {
-        if (audioRef.current) {
-          audioRef.current.removeEventListener('canplay', handleCanPlay);
-          const { isPlaying: playing } = usePlayerStore.getState();
-          if (playing) {
-            audioRef.current.play().catch(console.error);
-          }
+        cleanup();
+        const { isPlaying: playing } = usePlayerStore.getState();
+        if (playing) {
+          audio.play().catch(console.error);
         }
         // Mark transition complete (Fix #2)
         isTransitioningTrackRef.current = false;
         resolve();
       };
-      audioRef.current?.addEventListener('canplay', handleCanPlay);
+
+      const handleError = () => {
+        cleanup();
+        isTransitioningTrackRef.current = false;
+        reject(new Error(`Failed to load audio track ${trackIndex + 1}`));
+      };
+
+      audio.addEventListener('canplay', handleCanPlay);
+      audio.addEventListener('error', handleError);
+      audio.addEventListener('loadedmetadata', handleMeta);
+      audio.src = trackUrl;
+      audio.load();
     });
   };
 
@@ -252,15 +233,22 @@ export default function Player() {
     
     const tracks = audioTracks as AudioTrack[];
     
-    if (isMultiTrack(tracks)) {
+    if (hasMultipleTracks(tracks)) {
       // Multi-track: find the correct track and track-relative time
       const { trackIndex, trackTime } = findTrackForGlobalTime(tracks, clampedTime);
       
       if (trackIndex !== currentTrackIndex) {
         // Need to switch to a different audio file
         setIsSeeking(true);
-        await loadAudioTrackInternal(trackIndex, trackTime, tracks);
-        setIsSeeking(false);
+        try {
+          await loadAudioTrackInternal(trackIndex, trackTime, tracks);
+        } catch (err) {
+          console.error('Failed to switch audio track:', err);
+          setError('Failed to load audio track');
+          setIsPlaying(false);
+        } finally {
+          setIsSeeking(false);
+        }
       } else {
         // Same track, just seek within it
         audioRef.current.currentTime = trackTime;
@@ -297,7 +285,7 @@ export default function Player() {
     if (prevSessionRef.current && audioRef.current) {
       const prev = prevSessionRef.current;
       let syncTime = audioRef.current.currentTime;
-      if (isMultiTrack(prev.audioTracks)) {
+      if (hasMultipleTracks(prev.audioTracks)) {
         syncTime = trackTimeToGlobal(prev.audioTracks, prev.currentTrackIndex, audioRef.current.currentTime);
       }
       const timeListened = (Date.now() - prev.lastSync) / 1000;
@@ -355,13 +343,16 @@ export default function Player() {
           
           // Check if this is an HLS stream
           if (streamUrl.includes('.m3u8')) {
+            const { default: Hls } = await import('hls.js');
+            if (loadGenerationRef.current !== generation) return;
+
             if (Hls.isSupported()) {
               const hls = new Hls({
                 enableWorker: true,
                 lowLatencyMode: false,
-                maxBufferLength: 600,
-                maxMaxBufferLength: 1200,
-                maxBufferSize: 60 * 1000 * 1000,
+                maxBufferLength: 300,
+                maxMaxBufferLength: 600,
+                maxBufferSize: 30 * 1000 * 1000,
                 maxBufferHole: 0.5,
                 startLevel: -1,
                 fragLoadingTimeOut: 20000,
@@ -486,7 +477,7 @@ export default function Player() {
         const tracks = prev?.audioTracks || usePlayerStore.getState().audioTracks as AudioTrack[];
         const idx = prev?.currentTrackIndex ?? usePlayerStore.getState().currentTrackIndex;
         let syncTime = audioRef.current.currentTime;
-        if (isMultiTrack(tracks)) {
+        if (hasMultipleTracks(tracks)) {
           syncTime = trackTimeToGlobal(tracks, idx, audioRef.current.currentTime);
         }
         const timeListened = (Date.now() - sessionRef.current.lastSync) / 1000;
@@ -524,7 +515,7 @@ export default function Player() {
           
           const tracks = audioTracks as AudioTrack[];
           let syncTime = audio.currentTime;
-          if (isMultiTrack(tracks) && currentTrackIndex >= 0) {
+          if (hasMultipleTracks(tracks) && currentTrackIndex >= 0) {
             syncTime = trackTimeToGlobal(tracks, currentTrackIndex, audio.currentTime);
           }
           
@@ -570,7 +561,7 @@ export default function Player() {
       const tracks = audioTracks as AudioTrack[];
       // Only set duration from audio element for single-track books.
       // For multi-track books, the total duration was already set from the API response.
-      if (!isMultiTrack(tracks)) {
+      if (!hasMultipleTracks(tracks)) {
         setDuration(audioRef.current.duration);
       }
     }

@@ -5,13 +5,13 @@ import { absApi } from '../services/api';
 import './Login.css';
 
 export default function Login() {
-  const [serverUrl, setServerUrl] = useState('');
+  const { login, serverUrl: savedServerUrl, setServerUrl: saveServerUrl } = useAuthStore();
+  const [serverUrl, setServerUrl] = useState(savedServerUrl);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { login, setServerUrl: saveServerUrl } = useAuthStore();
 
   const isValidUrl = (url: string): boolean => {
     try {
@@ -39,8 +39,9 @@ export default function Login() {
       saveServerUrl(serverUrl);
       login({ id: user.id, username: user.username, token: user.token, mediaProgress: user.mediaProgress });
       navigate('/');
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Login failed');
+    } catch (err: unknown) {
+      const apiError = err as { response?: { data?: { error?: string } } };
+      setError(apiError.response?.data?.error || 'Login failed');
     } finally {
       setLoading(false);
     }

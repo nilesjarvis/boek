@@ -11,8 +11,9 @@ export class ChapterUtils {
     audioTracks?: AudioTrack[]
   ): EnhancedChapter[] {
     return chapters.map((chapter) => {
-      const duration = chapter.end - chapter.start;
-      const isActive = currentTime >= chapter.start && currentTime < chapter.end;
+      const duration = Math.max(0, chapter.end - chapter.start);
+      const hasDuration = duration > 0;
+      const isActive = hasDuration && currentTime >= chapter.start && currentTime < chapter.end;
       const progress = isActive
         ? (currentTime - chapter.start) / duration
         : currentTime > chapter.end
@@ -32,7 +33,7 @@ export class ChapterUtils {
       return {
         ...chapter,
         duration,
-        progress: Math.max(0, Math.min(1, progress)),
+        progress: Number.isFinite(progress) ? Math.max(0, Math.min(1, progress)) : 0,
         isCompleted: progress >= 0.95, // Consider 95% as completed
         trackIndex,
       };
@@ -50,9 +51,10 @@ export class ChapterUtils {
 
     // Clamp the time to chapter boundaries (with small buffer at end)
     const bufferTime = 0.1; // 100ms buffer before chapter end
+    const maxSeekTime = Math.max(chapter.start, chapter.end - bufferTime);
     return Math.max(
       chapter.start,
-      Math.min(chapter.end - bufferTime, requestedTime)
+      Math.min(maxSeekTime, requestedTime)
     );
   }
 

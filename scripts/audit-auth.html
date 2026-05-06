@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Boek Audit Auth Bootstrap</title>
+<script>
+  const params = new URLSearchParams(location.hash.slice(1));
+  const serverUrl = params.get('serverUrl');
+  const token = params.get('token');
+  const user = params.get('user');
+  const next = params.get('next') || '/#/';
+
+  if (serverUrl && token && user) {
+    localStorage.setItem('serverUrl', serverUrl);
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', user);
+  }
+
+  location.replace(next);
+</script>

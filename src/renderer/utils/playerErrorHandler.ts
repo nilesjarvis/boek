@@ -36,7 +36,9 @@ export class PlayerErrorHandler {
       config.maxDelay
     );
 
-    console.log(`[PlayerErrorHandler] Retrying ${errorKey} in ${delay}ms (attempt ${currentRetryCount + 1}/${config.maxRetries})`);
+    if (import.meta.env.DEV) {
+      console.debug(`[PlayerErrorHandler] Retrying ${errorKey} in ${delay}ms (attempt ${currentRetryCount + 1}/${config.maxRetries})`);
+    }
 
     // Schedule retry
     return new Promise((resolve, reject) => {
