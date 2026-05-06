@@ -26,9 +26,6 @@ export default function Library() {
     try {
       const libs = await absApi.getLibraries();
       setLibraries(libs);
-      if (libs.length > 0) {
-        setSelectedLib(libs[0]);
-      }
     } catch (err) {
       console.error('Failed to load libraries:', err);
     } finally {
@@ -86,14 +83,14 @@ export default function Library() {
   // Refresh progress when page gains focus
   useEffect(() => {
     const handleFocus = () => {
-      if (selectedLib) {
+      if (selectedLib && selectedLib.mediaType !== 'podcast') {
         loadItems(selectedLib.id);
       }
     };
 
     window.addEventListener('focus', handleFocus);
     return () => window.removeEventListener('focus', handleFocus);
-  }, [selectedLib]);
+  }, [selectedLib, loadItems]);
 
   // Keyboard shortcuts: 'b' for books, 'p' for podcasts
   useEffect(() => {

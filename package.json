@@ -10,8 +10,8 @@
   "homepage": "https://github.com/audiobookshelf-player/boek",
   "license": "MIT",
   "scripts": {
-    "dev": "concurrently -k \"npm run dev:renderer\" \"npm run dev:main\"",
-    "dev:renderer": "vite --port 5173",
+    "dev": "node scripts/dev.mjs",
+    "dev:renderer": "vite --host 127.0.0.1 --port ${VITE_DEV_PORT:-5173} --strictPort",
     "dev:main": "tsc -p tsconfig.main.json && cross-env NODE_ENV=development electron .",
     "build": "npm run build:renderer && npm run build:main",
     "build:renderer": "tsc -p tsconfig.renderer.json && vite build",
