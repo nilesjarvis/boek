@@ -1,6 +1,6 @@
 {
   "name": "audiobookshelf-player",
-  "version": "1.0.0",
+  "version": "1.0.3-beta.1",
   "description": "Minimalistic Audiobookshelf client for Linux",
   "main": "dist/main/index.js",
   "author": {
