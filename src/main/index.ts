@@ -1,5 +1,7 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron';
+import Store from 'electron-store';
 import * as path from 'path';
+import { resolveWindowLaunchPreferences } from './windowPreferences';
 
 app.disableHardwareAcceleration();
 app.commandLine.appendSwitch('disable-gpu');
@@ -10,12 +12,30 @@ app.commandLine.appendSwitch('disable-web-security');
 
 let mainWindow: BrowserWindow | null = null;
 
+interface AppPreferences {
+  fullscreenOnLaunch: boolean;
+}
+
 function createWindow() {
+  const store = new Store<AppPreferences>({
+    defaults: {
+      fullscreenOnLaunch: false,
+    },
+  });
+  const launchPreferences = resolveWindowLaunchPreferences(
+    process.argv,
+    store.get('fullscreenOnLaunch'),
+  );
+
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     minWidth: 800,
     minHeight: 600,
+    autoHideMenuBar: launchPreferences.autoHideMenuBar,
+    fullscreen: launchPreferences.fullscreen,
+    kiosk: launchPreferences.kiosk,
+    frame: launchPreferences.frame,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -23,6 +43,7 @@ function createWindow() {
     },
     show: false,
   });
+  mainWindow.setMenuBarVisibility(false);
 
   mainWindow.once('ready-to-show', () => {
     mainWindow?.show();
@@ -35,6 +56,14 @@ function createWindow() {
 
   mainWindow.webContents.on('render-process-gone', (_event, details) => {
     console.error('Renderer process gone:', details.reason);
+  });
+
+  mainWindow.on('enter-full-screen', () => {
+    store.set('fullscreenOnLaunch', true);
+  });
+
+  mainWindow.on('leave-full-screen', () => {
+    store.set('fullscreenOnLaunch', false);
   });
 
   if (process.env.NODE_ENV === 'development') {

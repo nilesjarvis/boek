@@ -19,6 +19,23 @@ Available as **AppImage** (works on any Linux distro) and **.deb** (Ubuntu/Debia
 
 Your login is remembered between sessions -- no need to sign in again after restarting.
 
+### Startup Options
+
+Append these flags to the app launch command when you want a different window mode:
+
+```bash
+./AudiobookshelfPlayer.AppImage --fullscreen
+./AudiobookshelfPlayer.AppImage --frameless
+./AudiobookshelfPlayer.AppImage --kiosk
+```
+
+- `--fullscreen` or `--start-fullscreen` starts the app in fullscreen.
+- `--windowed` or `--no-fullscreen` ignores a saved fullscreen preference for that launch.
+- `--frameless` or `--no-frame` removes the OS window frame/title bar, including window controls.
+- `--kiosk` starts the app in kiosk mode.
+
+Fullscreen changes made from your desktop environment are remembered across restarts.
+
 ---
 
 ## Features
