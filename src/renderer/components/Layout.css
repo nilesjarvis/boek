@@ -35,28 +35,6 @@
   gap: 0.2rem;
 }
 
-/* Brand logo */
-.floating-nav-brand {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 7px;
-  background: var(--accent);
-  color: white;
-  font-weight: 800;
-  font-size: 0.85rem;
-  cursor: pointer;
-  flex-shrink: 0;
-  user-select: none;
-  transition: transform 0.15s;
-}
-
-.floating-nav-brand:hover {
-  transform: scale(1.08);
-}
-
 /* Nav links */
 .floating-nav-link {
   padding: 0.3rem 0.7rem;

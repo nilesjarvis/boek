@@ -83,7 +83,6 @@ export default function Layout({ children }: LayoutProps) {
       {/* Unified top bar spanning the full width */}
       <header className="topbar">
         <div className="topbar-left">
-          <span className="floating-nav-brand" onClick={() => navigate('/')} role="button" tabIndex={0}>B</span>
           <button
             className={`floating-nav-link ${isLibraryPage ? 'active' : ''}`}
             onClick={() => navigate('/')}

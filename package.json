@@ -5,7 +5,7 @@
   "main": "dist/main/index.js",
   "author": {
     "name": "Boek",
-    "email": "dev@boek.app",
+    "email": "dev@boek.app"
   },
   "homepage": "https://github.com/nilesjarvis/boek",
   "license": "MIT",
