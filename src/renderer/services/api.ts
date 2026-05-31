@@ -329,8 +329,8 @@ class ABSApi {
     
     const response = await this.getClient().post(playEndpoint, {
       deviceInfo: {
-        clientName: 'Audiobookshelf Player',
-        deviceId: 'audiobookshelf-player-electron',
+        clientName: 'Boek',
+        deviceId: 'boek-electron',
       },
       supportedMimeTypes: ['audio/flac', 'audio/mpeg', 'audio/mp4', 'audio/ogg', 'audio/aac', 'audio/webm'],
       mediaPlayer: 'html5',

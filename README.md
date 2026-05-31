@@ -24,9 +24,9 @@ Your login is remembered between sessions -- no need to sign in again after rest
 Append these flags to the app launch command when you want a different window mode:
 
 ```bash
-./AudiobookshelfPlayer.AppImage --fullscreen
-./AudiobookshelfPlayer.AppImage --frameless
-./AudiobookshelfPlayer.AppImage --kiosk
+./Boek.AppImage --fullscreen
+./Boek.AppImage --frameless
+./Boek.AppImage --kiosk
 ```
 
 - `--fullscreen` or `--start-fullscreen` starts the app in fullscreen.

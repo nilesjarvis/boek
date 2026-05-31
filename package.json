@@ -1,13 +1,13 @@
 {
-  "name": "audiobookshelf-player",
+  "name": "boek",
   "version": "1.0.3-beta.1",
   "description": "Minimalistic Audiobookshelf client for Linux",
   "main": "dist/main/index.js",
   "author": {
-    "name": "Audiobookshelf Player",
-    "email": "dev@audiobookshelf-player.app"
+    "name": "Boek",
+    "email": "dev@boek.app",
   },
-  "homepage": "https://github.com/audiobookshelf-player/boek",
+  "homepage": "https://github.com/nilesjarvis/boek",
   "license": "MIT",
   "scripts": {
     "dev": "node scripts/dev.mjs",
@@ -46,7 +46,7 @@
   },
   "build": {
     "appId": "com.audiobookshelf.player",
-    "productName": "AudiobookshelfPlayer",
+    "productName": "Boek",
     "directories": {
       "output": "release"
     },

@@ -1,4 +1,4 @@
-# Coding Agent Guidelines for Audiobookshelf Player
+# Coding Agent Guidelines for Boek
 
 ## Quick Reference
 
