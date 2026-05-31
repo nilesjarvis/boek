@@ -80,9 +80,9 @@ export default function Layout({ children }: LayoutProps) {
 
   return (
     <div className="layout">
-      {/* Floating navigation pill -- top left */}
-      <nav className={`floating-nav ${hasLibraryTabs ? 'has-sub' : ''}`}>
-        <div className="floating-nav-row">
+      {/* Unified top bar spanning the full width */}
+      <header className="topbar">
+        <div className="topbar-left">
           <span className="floating-nav-brand" onClick={() => navigate('/')} role="button" tabIndex={0}>B</span>
           <button
             className={`floating-nav-link ${isLibraryPage ? 'active' : ''}`}
@@ -96,80 +96,79 @@ export default function Layout({ children }: LayoutProps) {
           >
             Stats
           </button>
-        </div>
 
-        {/* Library sub-tabs (Books / Podcasts) -- only visible on Library page */}
-        {hasLibraryTabs && (
-          <div className="floating-nav-sub">
-            {libraries.map((lib) => (
-              <button
-                key={lib.id}
-                className={`floating-nav-sub-link ${selectedLib?.id === lib.id ? 'active' : ''}`}
-                onClick={() => setSelectedLib(lib)}
-              >
-                {lib.name}
-              </button>
-            ))}
-          </div>
-        )}
-      </nav>
-
-      {/* Floating action buttons -- top right */}
-      <div className="floating-actions">
-        <Search />
-
-        <div className="theme-button-wrapper" ref={themePickerRef}>
-          <button 
-            className="floating-icon-button"
-            onClick={handleThemeToggle}
-            onContextMenu={handleThemeContextMenu}
-            title={`Theme: ${themes[themeName].name} (right-click for list)`}
-          >
-            <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
-              <path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-1 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
-            </svg>
-          </button>
-          {showThemePicker && (
-            <div className="theme-picker">
-              {themeNames.map(key => (
+          {/* Library sub-tabs (Books / Podcasts) -- only visible on Library page */}
+          {hasLibraryTabs && (
+            <div className="library-tabs">
+              {libraries.map((lib) => (
                 <button
-                  key={key}
-                  className={`theme-picker-option ${key === themeName ? 'active' : ''}`}
-                  onClick={() => {
-                    setTheme(key);
-                    setShowThemePicker(false);
-                  }}
+                  key={lib.id}
+                  className={`library-tab ${selectedLib?.id === lib.id ? 'active' : ''}`}
+                  onClick={() => setSelectedLib(lib)}
                 >
-                  <span
-                    className="theme-picker-swatch"
-                    style={{
-                      background: `linear-gradient(135deg, ${themes[key].colors.bg} 50%, ${themes[key].colors.accent} 50%)`,
-                    }}
-                  />
-                  <span className="theme-picker-name">{themes[key].name}</span>
-                  {key === themeName && (
-                    <svg className="theme-picker-check" viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
-                      <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
-                    </svg>
-                  )}
+                  {lib.name}
                 </button>
               ))}
             </div>
           )}
         </div>
 
-        <button 
-          className="floating-icon-button logout-button"
-          onClick={handleLogout}
-          title="Logout"
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-            <polyline points="16 17 21 12 16 7"></polyline>
-            <line x1="21" y1="12" x2="9" y2="12"></line>
-          </svg>
-        </button>
-      </div>
+        <div className="topbar-right">
+          <Search />
+
+          <div className="theme-button-wrapper" ref={themePickerRef}>
+            <button 
+              className="floating-icon-button"
+              onClick={handleThemeToggle}
+              onContextMenu={handleThemeContextMenu}
+              title={`Theme: ${themes[themeName].name} (right-click for list)`}
+            >
+              <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
+                <path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-1 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
+              </svg>
+            </button>
+            {showThemePicker && (
+              <div className="theme-picker">
+                {themeNames.map(key => (
+                  <button
+                    key={key}
+                    className={`theme-picker-option ${key === themeName ? 'active' : ''}`}
+                    onClick={() => {
+                      setTheme(key);
+                      setShowThemePicker(false);
+                    }}
+                  >
+                    <span
+                      className="theme-picker-swatch"
+                      style={{
+                        background: `linear-gradient(135deg, ${themes[key].colors.bg} 50%, ${themes[key].colors.accent} 50%)`,
+                      }}
+                    />
+                    <span className="theme-picker-name">{themes[key].name}</span>
+                    {key === themeName && (
+                      <svg className="theme-picker-check" viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
+                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                      </svg>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <button 
+            className="floating-icon-button logout-button"
+            onClick={handleLogout}
+            title="Logout"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+          </button>
+        </div>
+      </header>
 
       <main className={`main-content ${transitionState === 'enter' ? 'page-enter' : ''}`}>
         {children}

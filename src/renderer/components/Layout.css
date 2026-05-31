@@ -6,32 +6,36 @@
   position: relative;
 }
 
-/* ---- Floating navigation pill (top-left) ---- */
-.floating-nav {
+/* ---- Unified top bar (full width) ---- */
+.topbar {
   position: fixed;
-  top: 1rem;
-  left: 1.5rem;
+  top: 0;
+  left: 0;
+  right: 0;
   z-index: 150;
   display: flex;
-  flex-direction: column;
-  gap: 0;
-  padding: 0.3rem;
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--bg-secondary) 75%, transparent);
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 1.5rem;
+  background: color-mix(in srgb, var(--bg-secondary) 90%, transparent);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
-  transition: border-radius 0.25s ease;
 }
 
-/* Primary nav row (brand + Library + Stats) */
-.floating-nav-row {
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.topbar-right {
   display: flex;
   align-items: center;
   gap: 0.2rem;
 }
 
+/* Brand logo */
 .floating-nav-brand {
   display: flex;
   align-items: center;
@@ -53,6 +57,7 @@
   transform: scale(1.08);
 }
 
+/* Nav links */
 .floating-nav-link {
   padding: 0.3rem 0.7rem;
   border-radius: 7px;
@@ -77,29 +82,17 @@
   font-weight: 600;
 }
 
-/* ---- Library sub-tabs (Books / Podcasts) ---- */
-.floating-nav-sub {
+/* Library sub-tabs inline */
+.library-tabs {
   display: flex;
   align-items: center;
   gap: 0.15rem;
-  padding-top: 0.25rem;
-  margin-top: 0.25rem;
-  border-top: 1px solid color-mix(in srgb, var(--border) 30%, transparent);
-  animation: subNavSlideIn 0.25s ease both;
+  margin-left: 0.3rem;
+  padding-left: 0.3rem;
+  border-left: 1px solid color-mix(in srgb, var(--border) 40%, transparent);
 }
 
-@keyframes subNavSlideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.floating-nav-sub-link {
+.library-tab {
   padding: 0.2rem 0.55rem;
   border-radius: 5px;
   font-size: 0.7rem;
@@ -113,35 +106,18 @@
   letter-spacing: 0.01em;
 }
 
-.floating-nav-sub-link:hover {
+.library-tab:hover {
   background: color-mix(in srgb, var(--bg-tertiary) 80%, transparent);
   color: var(--fg-secondary);
 }
 
-.floating-nav-sub-link.active {
+.library-tab.active {
   background: color-mix(in srgb, var(--accent) 12%, transparent);
   color: var(--accent);
   font-weight: 600;
 }
 
-/* ---- Floating action buttons (top-right) ---- */
-.floating-actions {
-  position: fixed;
-  top: 1rem;
-  right: 1.5rem;
-  z-index: 150;
-  display: flex;
-  align-items: center;
-  gap: 0.2rem;
-  padding: 0.3rem;
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--bg-secondary) 75%, transparent);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
-}
-
+/* Icon buttons */
 .floating-icon-button {
   display: flex;
   align-items: center;
@@ -259,7 +235,7 @@
   flex: 1;
   overflow-y: auto;
   padding: 2rem;
-  /* Top padding accounts for floating nav height + breathing room */
+  /* Top padding accounts for topbar height + breathing room */
   padding-top: 4rem;
   padding-bottom: 170px; /* Space for mini player + episode recommendations bar */
   max-width: 1400px;
@@ -305,22 +281,17 @@
 }
 
 @media (max-width: 640px) {
-  .floating-nav {
-    top: 0.75rem;
-    left: 0.75rem;
-    max-width: calc(100vw - 7.5rem);
-    overflow: hidden;
+  .topbar {
+    padding: 0.5rem 0.75rem;
   }
 
-  .floating-nav-row,
-  .floating-nav-sub {
+  .topbar-left {
     max-width: 100%;
     overflow-x: auto;
     scrollbar-width: none;
   }
 
-  .floating-nav-row::-webkit-scrollbar,
-  .floating-nav-sub::-webkit-scrollbar {
+  .topbar-left::-webkit-scrollbar {
     display: none;
   }
 
@@ -329,13 +300,8 @@
     font-size: 0.75rem;
   }
 
-  .floating-nav-sub-link {
+  .library-tab {
     padding: 0.2rem 0.45rem;
-  }
-
-  .floating-actions {
-    top: 0.75rem;
-    right: 0.75rem;
   }
 
   .shortcut-hint {
@@ -343,6 +309,6 @@
   }
 
   .main-content {
-    padding: 6.25rem 1rem 145px;
+    padding: 5rem 1rem 145px;
   }
 }
