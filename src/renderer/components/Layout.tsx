@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import { useLibraryNavStore } from '../stores/libraryNavStore';
 import { useTheme } from '../themes/ThemeProvider';
-import { themes, ThemeName } from '../themes/index';
+import { getNextThemeId } from '../themes/themeUtils';
 import Search from './Search';
 import './Layout.css';
 
@@ -11,13 +11,11 @@ interface LayoutProps {
   children: React.ReactNode;
 }
 
-const themeNames = Object.keys(themes) as ThemeName[];
-
 export default function Layout({ children }: LayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { logout } = useAuthStore();
-  const { themeName, setTheme } = useTheme();
+  const { themeName, themeOptions, setTheme } = useTheme();
   const { libraries, selectedLib, setSelectedLib } = useLibraryNavStore();
   const [showThemePicker, setShowThemePicker] = useState(false);
   const themePickerRef = useRef<HTMLDivElement>(null);
@@ -49,6 +47,7 @@ export default function Layout({ children }: LayoutProps) {
 
   const isLibraryPage = location.pathname === '/';
   const hasLibraryTabs = isLibraryPage && libraries.length > 1;
+  const activeThemeOption = themeOptions.find(option => option.id === themeName) ?? themeOptions[0];
 
   const handleLogout = () => {
     logout();
@@ -56,9 +55,7 @@ export default function Layout({ children }: LayoutProps) {
   };
 
   const handleThemeToggle = () => {
-    const currentIndex = themeNames.indexOf(themeName);
-    const nextIndex = (currentIndex + 1) % themeNames.length;
-    setTheme(themeNames[nextIndex]);
+    setTheme(getNextThemeId(themeOptions, themeName));
   };
 
   const handleThemeContextMenu = (e: React.MouseEvent) => {
@@ -120,7 +117,7 @@ export default function Layout({ children }: LayoutProps) {
               className="floating-icon-button"
               onClick={handleThemeToggle}
               onContextMenu={handleThemeContextMenu}
-              title={`Theme: ${themes[themeName].name} (right-click for list)`}
+              title={`Theme: ${activeThemeOption.label} (right-click for list)`}
             >
               <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
                 <path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-1 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
@@ -128,23 +125,23 @@ export default function Layout({ children }: LayoutProps) {
             </button>
             {showThemePicker && (
               <div className="theme-picker">
-                {themeNames.map(key => (
+                {themeOptions.map(option => (
                   <button
-                    key={key}
-                    className={`theme-picker-option ${key === themeName ? 'active' : ''}`}
+                    key={option.id}
+                    className={`theme-picker-option ${option.id === themeName ? 'active' : ''}`}
                     onClick={() => {
-                      setTheme(key);
+                      setTheme(option.id);
                       setShowThemePicker(false);
                     }}
                   >
                     <span
                       className="theme-picker-swatch"
                       style={{
-                        background: `linear-gradient(135deg, ${themes[key].colors.bg} 50%, ${themes[key].colors.accent} 50%)`,
+                        background: `linear-gradient(135deg, ${option.theme.colors.bg} 50%, ${option.theme.colors.accent} 50%)`,
                       }}
                     />
-                    <span className="theme-picker-name">{themes[key].name}</span>
-                    {key === themeName && (
+                    <span className="theme-picker-name">{option.label}</span>
+                    {option.id === themeName && (
                       <svg className="theme-picker-check" viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
                         <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
                       </svg>

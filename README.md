@@ -101,6 +101,8 @@ Your progress syncs with the server in real time. Listen on your phone during a 
 
 Includes: Dark, Light, Nord, Dracula, Tokyo Night, Rose Pine, Gruvbox, Solarized, Catpuccin, Ink (e-reader style), High Contrast, and more.
 
+Boek also supports a live external theme generated from your wallpaper or source color. See the [Matugen setup guide](matugen/README.md) to enable it; GTK or Adwaita overrides are not required.
+
 <p align="center">
   <img src="images/themes.png" alt="Theme selection" width="800" />
 </p>

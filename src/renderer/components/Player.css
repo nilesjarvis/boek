@@ -555,7 +555,7 @@
   height: 56px;
   border-radius: 50%;
   background: var(--accent);
-  color: white;
+  color: var(--accent-fg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -607,7 +607,7 @@
 
 .speed-option.active {
   background: var(--accent);
-  color: white;
+  color: var(--accent-fg);
   font-weight: 600;
 }
 
@@ -715,7 +715,7 @@
 
 .chapter-item.active {
   background: var(--accent);
-  color: white;
+  color: var(--accent-fg);
   border-color: var(--accent);
 }
 
@@ -925,7 +925,7 @@
   margin-top: 1.5rem;
   padding: 0.5rem 1rem;
   background: var(--accent);
-  color: white;
+  color: var(--accent-fg);
   border-radius: 4px;
   font-weight: 500;
   transition: background-color 0.2s;

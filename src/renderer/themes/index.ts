@@ -9,13 +9,14 @@ export interface Theme {
     fgMuted: string;
     accent: string;
     accentHover: string;
+    accentFg?: string;
     border: string;
     error: string;
     success: string;
   };
 }
 
-export const themes: Record<string, Theme> = {
+export const themes = {
   dark: {
     name: 'Dark',
     colors: {
@@ -304,6 +305,7 @@ export const themes: Record<string, Theme> = {
       success: '#00ff66',
     },
   },
-};
+} satisfies Record<string, Theme>;
 
-export type ThemeName = keyof typeof themes;
+export type BuiltInThemeName = keyof typeof themes;
+export type ThemeName = BuiltInThemeName | 'matugen';

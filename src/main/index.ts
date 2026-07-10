@@ -1,6 +1,11 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import Store from 'electron-store';
 import * as path from 'path';
+import {
+  loadMatugenTheme,
+  resolveMatugenThemePath,
+  watchMatugenTheme,
+} from './matugenTheme';
 import { resolveWindowLaunchPreferences } from './windowPreferences';
 
 app.disableHardwareAcceleration();
@@ -11,6 +16,8 @@ app.commandLine.appendSwitch('in-process-gpu');
 app.commandLine.appendSwitch('disable-web-security');
 
 let mainWindow: BrowserWindow | null = null;
+let stopMatugenThemeWatcher: (() => void) | null = null;
+const matugenThemePath = resolveMatugenThemePath();
 
 interface AppPreferences {
   fullscreenOnLaunch: boolean;
@@ -85,6 +92,17 @@ function createWindow() {
 
 app.whenReady().then(() => {
   createWindow();
+  try {
+    stopMatugenThemeWatcher = watchMatugenTheme(matugenThemePath, () => {
+      void loadMatugenTheme(matugenThemePath).then((result) => {
+        for (const window of BrowserWindow.getAllWindows()) {
+          window.webContents.send('matugen-theme-updated', result);
+        }
+      });
+    });
+  } catch (error) {
+    console.error('Failed to watch Matugen theme:', error);
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -93,11 +111,18 @@ app.whenReady().then(() => {
   });
 });
 
+app.on('before-quit', () => {
+  stopMatugenThemeWatcher?.();
+  stopMatugenThemeWatcher = null;
+});
+
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
 });
+
+ipcMain.handle('get-matugen-theme', () => loadMatugenTheme(matugenThemePath));
 
 ipcMain.handle('open-external', (_event, url: string) => {
   shell.openExternal(url);

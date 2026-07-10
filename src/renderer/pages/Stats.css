@@ -28,7 +28,7 @@
 
 .stats-tab.active {
   background: var(--accent);
-  color: white;
+  color: var(--accent-fg);
 }
 
 /* Error state */
@@ -52,7 +52,7 @@
   padding: 0.5rem 1.5rem;
   border-radius: 6px;
   background: var(--accent);
-  color: white;
+  color: var(--accent-fg);
   font-weight: 500;
   transition: background 0.2s;
   cursor: pointer;
@@ -319,12 +319,12 @@
 }
 
 .stats-type-book {
-  background: rgba(34, 197, 94, 0.15);
+  background: color-mix(in srgb, var(--success) 15%, transparent);
   color: var(--success);
 }
 
 .stats-type-podcast {
-  background: rgba(124, 58, 237, 0.15);
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
   color: var(--accent);
 }
 
